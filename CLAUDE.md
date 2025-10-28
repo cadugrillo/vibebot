@@ -13,25 +13,59 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current Status
 
-**Phase 1 (Foundation) - In Progress**
+**Phase 1 (Foundation) - ✅ COMPLETE**
 
 Completed:
 - ✅ VBT-21: Backend Node.js/TypeScript project initialized
 - ✅ VBT-22: Frontend React + shadcn/ui project initialized
 - ✅ VBT-23: Database setup with PostgreSQL and Prisma ORM
+- ✅ VBT-24: Docker configuration for self-hosted deployment
+- ✅ VBT-25: Setup documentation and installation guide
 
-Next: VBT-24 (Docker Configuration), VBT-25 (Setup Documentation)
+**Next Phase**: Phase 2 - Authentication (VBT-26 onwards)
 
 See `development_tasks.md` for the complete development sequence.
 
-## Planned Architecture
+---
+
+## 📍 Where to Pick Up
+
+**Last Completed**: VBT-25 - Setup Documentation (Phase 1 Complete)
+
+**Next Task**: VBT-26 - Start Phase 2: Authentication
+
+**To Resume Work:**
+1. Read VBT-26 and its subtasks from Jira:
+   ```
+   Can you read story VBT-26 and its sub-tasks from my Jira Board and create a plan to execute them?
+   ```
+
+2. VBT-26 will likely cover:
+   - User registration and login endpoints
+   - JWT authentication implementation
+   - Password hashing with bcrypt (already installed)
+   - Role-based access control
+   - Session management with Redis
+
+3. The database schema is already set up with User model and roles (ADMIN, USER, GUEST)
+
+**Current Project State:**
+- ✅ Backend infrastructure ready (Express, TypeScript, Prisma)
+- ✅ Frontend infrastructure ready (React, Vite, shadcn/ui)
+- ✅ Database configured with User, ApiKey, Conversation, Message models
+- ✅ Docker deployment ready (docker-compose.yml)
+- ✅ All documentation complete (README, DOCKER.md, DATABASE.md)
+- ⏭️ Ready for authentication implementation
+
+## Architecture
 
 ### Tech Stack
-- **Backend**: Node.js/TypeScript with Express
-- **Frontend**: React with Vite and shadcn/ui components
-- **Database**: PostgreSQL with Prisma ORM
-- **Real-time**: WebSocket for streaming AI responses (planned)
-- **Containerization**: Docker for deployment (planned)
+- **Backend**: Node.js 20 / TypeScript 5.9 with Express.js
+- **Frontend**: React 19 with Vite 7 and shadcn/ui components
+- **Database**: PostgreSQL 16 with Prisma ORM
+- **Cache**: Redis 7 for sessions and caching
+- **Containerization**: Docker Compose with multi-stage builds
+- **Real-time**: WebSocket for streaming AI responses (planned for Phase 3)
 
 ### Key System Components
 
