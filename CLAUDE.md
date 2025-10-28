@@ -13,16 +13,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current Status
 
-This is an **early-stage project** currently in the planning phase. The codebase contains documentation but no implementation yet. See `development_tasks.md` for the planned development sequence.
+**Phase 1 (Foundation) - In Progress**
+
+Completed:
+- ✅ VBT-21: Backend Node.js/TypeScript project initialized
+- ✅ VBT-22: Frontend React + shadcn/ui project initialized
+- ✅ VBT-23: Database setup with PostgreSQL and Prisma ORM
+
+Next: VBT-24 (Docker Configuration), VBT-25 (Setup Documentation)
+
+See `development_tasks.md` for the complete development sequence.
 
 ## Planned Architecture
 
-### Tech Stack (Planned)
-- **Backend**: Node.js/TypeScript with Express or similar
-- **Frontend**: React with shadcn/ui components
-- **Database**: PostgreSQL with Prisma or TypeORM
-- **Real-time**: WebSocket for streaming AI responses
-- **Containerization**: Docker for deployment
+### Tech Stack
+- **Backend**: Node.js/TypeScript with Express
+- **Frontend**: React with Vite and shadcn/ui components
+- **Database**: PostgreSQL with Prisma ORM
+- **Real-time**: WebSocket for streaming AI responses (planned)
+- **Containerization**: Docker for deployment (planned)
 
 ### Key System Components
 
@@ -78,14 +87,40 @@ The project follows an 8-week MVP development plan (see `development_tasks.md`):
 
 ## Development Workflow
 
-Since the codebase is not yet initialized, when implementing:
+### Backend Commands
+```bash
+npm run dev           # Start development server with auto-reload
+npm run build         # Compile TypeScript to dist/
+npm run start         # Run compiled server
+npm run lint          # Check for linting errors
+npm run lint:fix      # Auto-fix linting errors
+npm run format        # Format code with Prettier
+npm run format:check  # Check if code is formatted
+```
 
-1. Start with backend infrastructure (VBT-21: Node.js/TypeScript setup)
-2. Set up database schema early (VBT-23)
-3. Implement authentication before feature development
-4. Build backend APIs before corresponding frontend components
-5. Test incrementally after each story/component
-6. Commit frequently with clear messages referencing story IDs (e.g., "VBT-21: Initialize backend project")
+### Database Commands
+```bash
+npm run db:migrate    # Run database migrations
+npm run db:seed       # Populate database with test data
+npm run db:studio     # Open Prisma Studio UI
+npm run db:reset      # Reset database and re-run migrations
+```
+
+### Frontend Commands
+```bash
+cd client
+npm run dev           # Start frontend development server
+npm run build         # Build for production
+npm run lint          # Check for linting errors
+npm run format        # Format code with Prettier
+```
+
+### Development Guidelines
+
+1. Test incrementally after each story/component
+2. Build backend APIs before corresponding frontend components
+3. Commit frequently with clear messages referencing story IDs (e.g., "VBT-21: Initialize backend project")
+4. Use database migrations for schema changes (never modify the database directly)
 
 ## Important Context
 

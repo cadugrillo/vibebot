@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // Connection pooling configuration
+  // shadowDatabaseUrl = env("SHADOW_DATABASE_URL") // For migrations in production
+  // directUrl = env("DIRECT_DATABASE_URL") // For migrations
+}
+
+enum UserRole {
+  ADMIN
+  USER
+  GUEST
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum ApiKeyProvider {
+  CLAUDE
+  OPENAI
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  password      String
+  name          String?
+  role          UserRole       @default(USER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  conversations Conversation[]
+  messages      Message[]
+  apiKeys       ApiKey[]
+
+  @@map("users")
+}
+
+model ApiKey {
+  id            String          @id @default(cuid())
+  userId        String
+  provider      ApiKeyProvider
+  encryptedKey  String
+  name          String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+  @@index([userId])
+}
+
+model Conversation {
+  id            String         @id @default(cuid())
+  userId        String
+  title         String         @default("New Conversation")
+  model         String?
+  systemPrompt  String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages      Message[]
+
+  @@map("conversations")
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Message {
+  id              String         @id @default(cuid())
+  conversationId  String
+  userId          String?
+  role            MessageRole
+  content         String
+  metadata        Json?
+  createdAt       DateTime       @default(now())
+
+  conversation    Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user            User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("messages")
+  @@index([conversationId])
+  @@index([createdAt])
+}
