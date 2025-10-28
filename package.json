@@ -1,0 +1,54 @@
+{
+  "name": "vibebot",
+  "version": "1.0.0",
+  "description": "The project VibeBot consists in a self-hosted muti-user, AI Agent app. It should have at least the following features: Modern and easy-to-use web interface; Multiple chats with history; be able to use both Claude and OpenAI APIs for model selection; be able to access tools and remote MCP Servers.",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "nodemon --exec tsx src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cadugrillo/vibebot.git"
+  },
+  "keywords": [
+    "ai",
+    "chat",
+    "mcp",
+    "claude",
+    "openai",
+    "typescript",
+    "express"
+  ],
+  "author": "Carlos Grillo",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cadugrillo/vibebot/issues"
+  },
+  "homepage": "https://github.com/cadugrillo/vibebot#readme",
+  "devDependencies": {
+    "@eslint/js": "^9.38.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/node": "^24.9.2",
+    "@typescript-eslint/eslint-plugin": "^8.46.2",
+    "@typescript-eslint/parser": "^8.46.2",
+    "eslint": "^9.38.0",
+    "eslint-config-prettier": "^10.1.8",
+    "nodemon": "^3.1.10",
+    "prettier": "^3.6.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0"
+  }
+}
