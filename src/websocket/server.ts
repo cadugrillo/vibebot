@@ -12,6 +12,7 @@ import { MessageHandlers } from './handlers/messageHandlers';
 import { TypingHandlers } from './handlers/typingHandlers';
 import { StatusHandlers } from './handlers/statusHandlers';
 import { WebSocketErrorHandler } from './errorHandler';
+import { CleanupManager } from './cleanup';
 
 /**
  * WebSocket server configuration
@@ -214,33 +215,29 @@ export class VibeWebSocketServer {
 
   /**
    * Handle WebSocket disconnection
-   * Basic implementation - will be expanded in VBT-151
+   * Performs comprehensive cleanup using CleanupManager
    */
-  private handleDisconnect(
+  private async handleDisconnect(
     ws: ExtendedWebSocket,
     code: number,
     reason: string
-  ): void {
+  ): Promise<void> {
     console.log(`WebSocket disconnected - Code: ${code}, Reason: ${reason || 'No reason'}`);
     console.log(`Connection duration: ${Date.now() - ws.connectedAt.getTime()}ms`);
 
-    // Send disconnected event to client (if still possible)
-    StatusHandlers.sendDisconnected(ws, code, reason);
-
-    // Clear typing states for this user
-    if (ws.userId) {
-      this.typingHandlers.clearUserTypingStates(ws.userId);
-    }
-
-    // Remove connection from manager
-    this.connectionManager.removeConnection(ws);
-
-    // Log connection event
-    StatusHandlers.logConnectionEvent('connection:disconnected' as any, ws, {
+    // Perform comprehensive cleanup
+    const cleanupResult = await CleanupManager.cleanup(
+      ws,
       code,
       reason,
-      duration: Date.now() - ws.connectedAt.getTime(),
-    });
+      this.connectionManager,
+      this.typingHandlers
+    );
+
+    // Log cleanup result
+    if (!cleanupResult.success) {
+      console.error('Cleanup completed with errors:', cleanupResult.errors);
+    }
   }
 
   /**
