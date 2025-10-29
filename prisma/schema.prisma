@@ -46,6 +46,7 @@ model User {
   conversations Conversation[]
   messages      Message[]
   apiKeys       ApiKey[]
+  refreshTokens RefreshToken[]
 
   @@map("users")
 }
@@ -97,4 +98,18 @@ model Message {
   @@map("messages")
   @@index([conversationId])
   @@index([createdAt])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+  @@index([userId])
+  @@index([token])
 }

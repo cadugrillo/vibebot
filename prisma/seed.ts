@@ -10,6 +10,7 @@ async function main(): Promise<void> {
   await prisma.message.deleteMany();
   await prisma.conversation.deleteMany();
   await prisma.apiKey.deleteMany();
+  await prisma.refreshToken.deleteMany();
   await prisma.user.deleteMany();
 
   // Hash passwords
