@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
+import adminRoutes from './routes/admin.routes';
 
 // Load environment variables
 dotenv.config();
@@ -36,6 +37,7 @@ app.get('/health', (_req: Request, res: Response) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

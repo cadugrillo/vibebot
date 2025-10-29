@@ -1,15 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utils/auth.utils';
+import prisma from '../config/database';
 
 /**
  * Authentication middleware to verify JWT tokens from cookies or Authorization header
  * Attaches decoded user information to req.user if token is valid
  */
-export function authenticateToken(
+export async function authenticateToken(
   req: Request,
   res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   try {
     // Try to get token from cookies first (HTTP-only cookie)
     let token = req.cookies?.accessToken;
@@ -34,10 +35,25 @@ export function authenticateToken(
     // Verify token
     const decoded = verifyAccessToken(token);
 
+    // Fetch user role from database
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { role: true },
+    });
+
+    if (!user) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'User not found',
+      });
+      return;
+    }
+
     // Attach user info to request
     req.user = {
       userId: decoded.userId,
       email: decoded.email,
+      role: user.role,
     };
 
     next();
@@ -57,11 +73,11 @@ export function authenticateToken(
  * Optional authentication middleware - doesn't fail if no token present
  * Useful for routes that should work both with and without authentication
  */
-export function optionalAuthenticateToken(
+export async function optionalAuthenticateToken(
   req: Request,
   res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   try {
     // Try to get token from cookies first
     let token = req.cookies?.accessToken;
@@ -77,10 +93,20 @@ export function optionalAuthenticateToken(
     // If token exists, verify and attach user info
     if (token) {
       const decoded = verifyAccessToken(token);
-      req.user = {
-        userId: decoded.userId,
-        email: decoded.email,
-      };
+
+      // Fetch user role from database
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+        select: { role: true },
+      });
+
+      if (user) {
+        req.user = {
+          userId: decoded.userId,
+          email: decoded.email,
+          role: user.role,
+        };
+      }
     }
 
     next();

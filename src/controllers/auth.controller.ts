@@ -74,7 +74,7 @@ export async function loginHandler(
       return;
     }
 
-    // Authenticate user
+    // Authenticate user (includes lockout logic)
     const result = await authService.login(email, password);
 
     // Set HTTP-only cookies for tokens
@@ -102,12 +102,20 @@ export async function loginHandler(
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Login failed';
 
-    if (message === 'Invalid email or password') {
+    // Check if account is locked (contains "Account locked" text)
+    if (message.includes('Account locked')) {
+      res.status(403).json({
+        error: 'Forbidden',
+        message,
+      });
+    } else if (message === 'Invalid email or password') {
+      // Invalid credentials
       res.status(401).json({
         error: 'Unauthorized',
         message,
       });
     } else {
+      // Unexpected error
       res.status(500).json({
         error: 'Internal Server Error',
         message: 'An error occurred during login',

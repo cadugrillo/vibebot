@@ -6,6 +6,12 @@ import {
   generateRefreshToken,
   verifyRefreshToken,
 } from '../utils/auth.utils';
+import {
+  isAccountLocked,
+  getRemainingLockTime,
+  incrementFailedAttempts,
+  resetFailedAttempts,
+} from '../utils/loginAttempts.utils';
 import { UserRole } from '../generated/prisma';
 
 interface AuthResult {
@@ -98,17 +104,18 @@ export async function register(input: RegisterInput): Promise<AuthResult> {
 
 /**
  * Authenticate user with email and password
+ * Includes account lockout logic for failed attempts
  * Generates access and refresh tokens, stores refresh token in database
  * @param email - User email
  * @param password - Plain text password
  * @returns User info, access token, and refresh token
- * @throws Error if credentials are invalid
+ * @throws Error if credentials are invalid or account is locked
  */
 export async function login(
   email: string,
   password: string
 ): Promise<AuthResult> {
-  // Find user by email
+  // Find user by email with login tracking fields
   const user = await prisma.user.findUnique({
     where: { email },
     select: {
@@ -117,18 +124,41 @@ export async function login(
       password: true,
       name: true,
       role: true,
+      failedLoginAttempts: true,
+      accountLockedUntil: true,
+      lastLoginAt: true,
     },
   });
 
   if (!user) {
+    // Don't reveal if user exists - return generic error
     throw new Error('Invalid email or password');
+  }
+
+  // Check if account is locked
+  if (isAccountLocked(user)) {
+    const remainingMinutes = getRemainingLockTime(user);
+    throw new Error(
+      `Account locked due to multiple failed attempts. Try again in ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`
+    );
   }
 
   // Verify password
   const isPasswordValid = await verifyPassword(password, user.password);
   if (!isPasswordValid) {
+    // Increment failed attempts and potentially lock account
+    await incrementFailedAttempts(user.id);
     throw new Error('Invalid email or password');
   }
+
+  // Password is correct - reset failed attempts and update last login
+  await resetFailedAttempts(user.id);
+
+  // Update last login timestamp
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLoginAt: new Date() },
+  });
 
   // Generate tokens
   const tokenPayload = {
