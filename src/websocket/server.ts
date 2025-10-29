@@ -7,6 +7,7 @@ import { Server as WebSocketServer, WebSocket } from 'ws';
 import { IncomingMessage, Server as HTTPServer } from 'http';
 import { parse } from 'url';
 import { verifyAccessToken } from '../utils/auth.utils';
+import { ConnectionManager } from './connectionManager';
 
 /**
  * WebSocket server configuration
@@ -38,6 +39,7 @@ export class VibeWebSocketServer {
   // @ts-expect-error - Reserved for future use (e.g., idle connection timeout)
   private connectionTimeout: number;
   private heartbeatTimer?: NodeJS.Timeout;
+  private connectionManager: ConnectionManager;
 
   constructor(config: WebSocketServerConfig) {
     const {
@@ -57,6 +59,9 @@ export class VibeWebSocketServer {
 
     this.heartbeatInterval = heartbeatInterval;
     this.connectionTimeout = connectionTimeout; // Reserved for future use
+
+    // Initialize connection manager
+    this.connectionManager = new ConnectionManager();
 
     this.initialize();
   }
@@ -134,11 +139,15 @@ export class VibeWebSocketServer {
     // Setup connection event handlers
     this.setupConnectionHandlers(extWs);
 
+    // Add connection to manager
+    const connectionId = this.connectionManager.addConnection(extWs);
+
     // Send connection established event
     this.sendToClient(extWs, {
       type: 'connection:established',
       timestamp: new Date().toISOString(),
       userId: extWs.userId,
+      connectionId,
     });
 
     console.log('WebSocket connection established and authenticated');
@@ -203,6 +212,9 @@ export class VibeWebSocketServer {
   ): void {
     console.log(`WebSocket disconnected - Code: ${code}, Reason: ${reason || 'No reason'}`);
     console.log(`Connection duration: ${Date.now() - ws.connectedAt.getTime()}ms`);
+
+    // Remove connection from manager
+    this.connectionManager.removeConnection(ws);
   }
 
   /**
@@ -290,27 +302,58 @@ export class VibeWebSocketServer {
    * Get all WebSocket connections for a specific user
    */
   public getConnectionsByUserId(userId: string): ExtendedWebSocket[] {
-    const connections: ExtendedWebSocket[] = [];
-    this.wss.clients.forEach((client) => {
-      const extWs = client as ExtendedWebSocket;
-      if (extWs.userId === userId) {
-        connections.push(extWs);
-      }
-    });
-    return connections;
+    return this.connectionManager.getUserConnections(userId);
   }
 
   /**
    * Send message to a specific user (all their connections)
    */
   public sendToUser(userId: string, data: unknown): void {
-    const connections = this.getConnectionsByUserId(userId);
+    const connections = this.connectionManager.getUserConnections(userId);
     const message = JSON.stringify(data);
     connections.forEach((ws) => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(message);
       }
     });
+  }
+
+  /**
+   * Send message to all participants in a conversation
+   */
+  public sendToConversation(conversationId: string, data: unknown): void {
+    const connections = this.connectionManager.getConversationConnections(conversationId);
+    const message = JSON.stringify(data);
+    connections.forEach((ws) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(message);
+      }
+    });
+  }
+
+  /**
+   * Join a conversation (subscribe to conversation updates)
+   */
+  public joinConversation(ws: ExtendedWebSocket, conversationId: string): boolean {
+    return this.connectionManager.joinConversation(ws, conversationId);
+  }
+
+  /**
+   * Leave a conversation (unsubscribe from conversation updates)
+   */
+  public leaveConversation(ws: ExtendedWebSocket): boolean {
+    return this.connectionManager.leaveConversation(ws);
+  }
+
+  /**
+   * Get connection manager statistics
+   */
+  public getConnectionStats(): {
+    totalConnections: number;
+    uniqueUsers: number;
+    activeConversations: number;
+  } {
+    return this.connectionManager.getStats();
   }
 
   /**
@@ -333,6 +376,9 @@ export class VibeWebSocketServer {
     this.wss.clients.forEach((client) => {
       client.close(1001, 'Server shutting down');
     });
+
+    // Clear connection manager
+    this.connectionManager.clear();
 
     // Close the server
     return new Promise((resolve, reject) => {
