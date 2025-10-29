@@ -10,6 +10,7 @@ import { verifyAccessToken } from '../utils/auth.utils';
 import { ConnectionManager } from './connectionManager';
 import { MessageHandlers } from './handlers/messageHandlers';
 import { TypingHandlers } from './handlers/typingHandlers';
+import { StatusHandlers } from './handlers/statusHandlers';
 
 /**
  * WebSocket server configuration
@@ -110,17 +111,16 @@ export class VibeWebSocketServer {
 
     console.log('New WebSocket connection attempt from:', req.socket.remoteAddress);
 
+    // Send connection established event (before auth)
+    StatusHandlers.sendEstablished(extWs);
+
     // Extract and verify authentication token
     const { query } = parse(req.url || '', true);
     const token = Array.isArray(query.token) ? query.token[0] : query.token;
 
     if (!token) {
       console.warn('WebSocket connection rejected: No authentication token provided');
-      this.sendToClient(extWs, {
-        type: 'connection:error',
-        message: 'Authentication required',
-        code: 'AUTH_REQUIRED',
-      });
+      StatusHandlers.sendError(extWs, 'Authentication required', 'AUTH_REQUIRED');
       extWs.close(1008, 'Authentication required'); // 1008 = Policy Violation
       return;
     }
@@ -137,11 +137,7 @@ export class VibeWebSocketServer {
       const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
       console.warn('WebSocket authentication failed:', errorMessage);
 
-      this.sendToClient(extWs, {
-        type: 'connection:error',
-        message: errorMessage,
-        code: 'AUTH_FAILED',
-      });
+      StatusHandlers.sendError(extWs, errorMessage, 'AUTH_FAILED');
       extWs.close(1008, 'Authentication failed'); // 1008 = Policy Violation
       return;
     }
@@ -152,13 +148,8 @@ export class VibeWebSocketServer {
     // Add connection to manager
     const connectionId = this.connectionManager.addConnection(extWs);
 
-    // Send connection established event
-    this.sendToClient(extWs, {
-      type: 'connection:established',
-      timestamp: new Date().toISOString(),
-      userId: extWs.userId,
-      connectionId,
-    });
+    // Send connection authenticated event
+    StatusHandlers.sendAuthenticated(extWs, connectionId);
 
     console.log('WebSocket connection established and authenticated');
   }
@@ -221,6 +212,9 @@ export class VibeWebSocketServer {
     console.log(`WebSocket disconnected - Code: ${code}, Reason: ${reason || 'No reason'}`);
     console.log(`Connection duration: ${Date.now() - ws.connectedAt.getTime()}ms`);
 
+    // Send disconnected event to client (if still possible)
+    StatusHandlers.sendDisconnected(ws, code, reason);
+
     // Clear typing states for this user
     if (ws.userId) {
       this.typingHandlers.clearUserTypingStates(ws.userId);
@@ -228,6 +222,13 @@ export class VibeWebSocketServer {
 
     // Remove connection from manager
     this.connectionManager.removeConnection(ws);
+
+    // Log connection event
+    StatusHandlers.logConnectionEvent('connection:disconnected' as any, ws, {
+      code,
+      reason,
+      duration: Date.now() - ws.connectedAt.getTime(),
+    });
   }
 
   /**
@@ -235,9 +236,9 @@ export class VibeWebSocketServer {
    */
   private handleConnectionError(ws: ExtendedWebSocket, error: Error): void {
     console.error('WebSocket connection error:', error.message);
-    this.sendToClient(ws, {
-      type: 'connection:error',
-      message: error.message,
+    StatusHandlers.sendError(ws, error.message, 'CONNECTION_ERROR');
+    StatusHandlers.logConnectionEvent('connection:error' as any, ws, {
+      error: error.message,
     });
   }
 
@@ -280,15 +281,6 @@ export class VibeWebSocketServer {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = undefined;
       console.log('Heartbeat stopped');
-    }
-  }
-
-  /**
-   * Send message to a specific client
-   */
-  private sendToClient(ws: ExtendedWebSocket, data: unknown): void {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(data));
     }
   }
 
