@@ -9,7 +9,7 @@
 
 ## Features
 
-### Current (MVP - Phase 2 Complete, Phase 3 Starting)
+### Current (MVP - Phase 2 Complete, Phase 3 In Progress - 60%)
 
 - ✅ **Backend Infrastructure**: Node.js/TypeScript with Express
 - ✅ **Frontend**: React + Vite + shadcn/ui
@@ -22,6 +22,15 @@
 - ✅ **Security**: HTTP-only cookies, bcrypt hashing, rate limiting
 - ✅ **Frontend Auth**: React Context, protected routes, automatic token refresh
 - ✅ **Token Management**: Automatic refresh on 401, proactive refresh before expiry
+- ✅ **WebSocket Server**: Real-time communication infrastructure (ws package)
+- ✅ **WebSocket Auth**: JWT authentication for WebSocket connections
+- ✅ **Connection Manager**: Multi-tab support, user and conversation tracking
+- ✅ **Message Handlers**: Send/receive/stream with rate limiting (10 msg/min)
+- ✅ **Typing Indicators**: Auto-stop after 5 seconds, spam prevention
+- ✅ **Connection Events**: Full lifecycle tracking (established, authenticated, disconnected, error)
+- ✅ **Heartbeat System**: 30-second intervals for connection health monitoring
+- ⏳ **WebSocket Error Handling**: Reconnection logic (in progress)
+- ⏳ **WebSocket Client**: Frontend utility for WebSocket communication (in progress)
 - ⏳ **API Key Management**: Per-user encrypted storage for Claude/OpenAI keys (database ready, UI in Phase 7)
 - ⏳ **Conversation System**: Multi-user chat with history (database ready, Phase 3)
 
@@ -273,9 +282,20 @@ See [development_tasks.md](./development_tasks.md) for the complete 8-week MVP d
 - ✅ **Phase 1 - Foundation** (Weeks 1-2): Project structure, database, Docker
 - ✅ **Phase 2 - Authentication** (Weeks 2-3): JWT, registration, login, auth context
 
-**Current Phase**: Phase 3 - Core Chat Backend (WebSocket, Claude API, message routing)
-**Last Completed**: VBT-31 (Frontend Authentication State Management)
-**Next Task**: Check Jira for Phase 3 stories (WebSocket server setup)
+**Current Phase**: 🚧 **Phase 3 - Core Chat Backend** (60% complete)
+- ✅ WebSocket Server Infrastructure (VBT-144)
+- ✅ WebSocket Authentication (VBT-145)
+- ✅ Connection Manager (VBT-146)
+- ✅ Message Event Handlers (VBT-147)
+- ✅ Typing Indicators (VBT-148)
+- ✅ Connection Status Events (VBT-149)
+- ⏳ Error Handling & Reconnection (VBT-150)
+- ⏳ Cleanup on Disconnect (VBT-151)
+- ⏳ WebSocket Client Utility (VBT-152)
+- ⏳ End-to-End Testing (VBT-153)
+
+**Last Completed**: VBT-149 (Connection Status Events)
+**Next Task**: VBT-150 (Error Handling and Reconnection Logic)
 
 ## Security
 

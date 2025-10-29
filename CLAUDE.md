@@ -64,7 +64,22 @@ Completed:
   - jwt-decode package for token expiry calculation
   - Comprehensive end-to-end testing
 
-**Phase 2 Complete!** Ready for Phase 3 (Core Chat Backend)
+**Phase 2 Complete!**
+
+**Phase 3 (Core Chat Backend) - 🚧 IN PROGRESS**
+
+Completed:
+- ✅ VBT-39: WebSocket Server for Real-time Communication (6/10 sub-tasks complete)
+  - ✅ VBT-144: Setup WebSocket Server Infrastructure (ws package, server integration)
+  - ✅ VBT-145: Implement WebSocket Authentication Middleware (JWT verification)
+  - ✅ VBT-146: Create WebSocket Connection Manager (user/conversation tracking, multi-tab support)
+  - ✅ VBT-147: Implement Message Event Handlers (send/receive/stream with rate limiting)
+  - ✅ VBT-148: Add Typing Indicators (typing:start/stop with auto-timeout and spam prevention)
+  - ✅ VBT-149: Implement Connection Status Events (lifecycle tracking)
+  - ⏳ VBT-150: Add Error Handling and Reconnection Logic
+  - ⏳ VBT-151: Implement Cleanup on Disconnect
+  - ⏳ VBT-152: Create WebSocket Client Utility (Frontend)
+  - ⏳ VBT-153: Test WebSocket End-to-End
 
 See `development_tasks.md` for the complete development sequence.
 
@@ -72,13 +87,13 @@ See `development_tasks.md` for the complete development sequence.
 
 ## 📍 Where to Pick Up
 
-**Last Completed**: VBT-31 - Frontend Authentication State Management (Phase 2 complete!)
+**Last Completed**: VBT-149 - Connection Status Events (Phase 3 in progress)
 
-**Next Phase**: Phase 3 - Core Chat Backend (WebSocket, Claude API, message routing)
+**Current Task**: VBT-150 - Error Handling and Reconnection Logic
 
 **To Resume Work:**
-1. Check Jira for Phase 3 stories or read development_tasks.md
-2. First story in Phase 3 should be WebSocket server setup
+1. Read story VBT-150 from Jira to continue WebSocket implementation
+2. Remaining tasks: Error handling, cleanup logic, frontend client, testing
 
 **Current Project State:**
 - ✅ **Phase 1 (Foundation)** - COMPLETE
@@ -99,11 +114,19 @@ See `development_tasks.md` for the complete development sequence.
   - Automatic Token Refresh
   - Security: HTTP-only cookies, bcrypt, rate limiting
 
-- ⏭️ **Phase 3 (Core Chat Backend)** - READY TO START
-  - WebSocket server setup
-  - Claude API integration
-  - Message routing and streaming
-  - Conversation management
+- 🚧 **Phase 3 (Core Chat Backend)** - IN PROGRESS (60% complete)
+  - ✅ WebSocket server setup and infrastructure
+  - ✅ WebSocket authentication with JWT
+  - ✅ Connection management (multi-tab support)
+  - ✅ Message event handlers (send/receive/stream)
+  - ✅ Typing indicators with auto-timeout
+  - ✅ Connection status events
+  - ⏳ Error handling and reconnection logic
+  - ⏳ Cleanup on disconnect
+  - ⏳ WebSocket client utility (frontend)
+  - ⏳ End-to-end testing
+  - ⏳ Claude API integration (upcoming)
+  - ⏳ Conversation management API (upcoming)
 
 ## Architecture
 
@@ -113,7 +136,7 @@ See `development_tasks.md` for the complete development sequence.
 - **Database**: PostgreSQL 16 with Prisma ORM
 - **Cache**: Redis 7 for sessions and caching
 - **Containerization**: Docker Compose with multi-stage builds
-- **Real-time**: WebSocket for streaming AI responses (planned for Phase 3)
+- **Real-time**: WebSocket (ws package) integrated with HTTP server for streaming and real-time features
 
 ### Key System Components
 
@@ -151,10 +174,23 @@ See `development_tasks.md` for the complete development sequence.
    - Tool execution and routing
    - Permission management
 
-5. **Real-time Communication**
-   - WebSocket server for message streaming
-   - Typing indicators
-   - Connection management
+5. **Real-time Communication** 🚧 **PARTIALLY IMPLEMENTED**
+   - ✅ WebSocket server infrastructure (ws package integrated with Express)
+   - ✅ JWT authentication for WebSocket connections (token via query parameter)
+   - ✅ Connection manager with multi-tab support (track by userId and conversationId)
+   - ✅ Message event handlers:
+     - message:send - User sends message with rate limiting (10 msg/min)
+     - message:receive - Broadcast to conversation participants
+     - message:stream - AI response streaming with completion flag
+     - message:ack - Delivery acknowledgment (received/delivered/error)
+   - ✅ Typing indicators with auto-stop (5 seconds) and spam prevention
+   - ✅ Connection status events (established, authenticated, disconnected, error)
+   - ✅ Heartbeat mechanism (30-second intervals) for connection health
+   - ✅ Conversation-based broadcasting (send to all participants)
+   - ✅ User-based messaging (multi-tab support)
+   - ⏳ Error handling and reconnection logic
+   - ⏳ Cleanup on disconnect
+   - ⏳ Frontend WebSocket client utility
 
 ## Development Phases
 
