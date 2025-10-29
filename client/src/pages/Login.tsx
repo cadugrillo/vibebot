@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginSchema, type LoginFormData } from '../schemas/auth.schema';
-import { login } from '../services/auth.service';
+import { useAuth } from '../hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,8 +12,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 export default function Login() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     register,
@@ -24,31 +25,19 @@ export default function Login() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
+    setIsSubmitting(true);
     setErrorMessage('');
 
     try {
-      const response = await login(data);
-
-      if (response.error) {
-        setErrorMessage(response.error.message);
-        return;
-      }
-
-      // Store user data in localStorage for now (will be replaced with context in VBT-31)
-      if (response.data) {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        localStorage.setItem('accessToken', response.data.accessToken);
-
-        // Redirect to home/chat page
-        navigate('/');
-      }
+      await login(data.email, data.password);
+      // Navigate to chat page after successful login
+      navigate('/chat');
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : 'An unexpected error occurred'
       );
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -80,7 +69,7 @@ export default function Login() {
                 type="email"
                 placeholder="name@example.com"
                 {...register('email')}
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className={errors.email ? 'border-red-500' : ''}
               />
               {errors.email && (
@@ -104,7 +93,7 @@ export default function Login() {
                 type="password"
                 placeholder="Enter your password"
                 {...register('password')}
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className={errors.password ? 'border-red-500' : ''}
               />
               {errors.password && (
@@ -115,8 +104,8 @@ export default function Login() {
             </div>
 
             {/* Submit Button */}
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Signing in...' : 'Sign in'}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? 'Signing in...' : 'Sign in'}
             </Button>
 
             {/* Register Link */}

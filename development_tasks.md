@@ -34,10 +34,10 @@ As a sole developer, you need to build VibeBot in a strategic order that gets yo
 ### **Phase 3: Core Chat Backend (Week 3-4)**
 **Goal:** Get AI responses working
 
-12. **VBT-38**: [Backend] WebSocket Server for Real-time Communication
+12. **VBT-39**: [Backend] WebSocket Server for Real-time Communication
 13. **VBT-40**: [Backend] Claude API Integration
 14. **VBT-42**: [Backend] AI Provider Abstraction Layer
-15. **VBT-37**: [Backend] Conversation Management API
+15. **VBT-38**: [Backend] Conversation Management API
 16. **VBT-43**: [Backend] Message Processing and Routing API
 
 **Why this order?** 
@@ -56,7 +56,7 @@ As a sole developer, you need to build VibeBot in a strategic order that gets yo
 17. **VBT-34**: [Frontend] Main Chat Interface Layout
 18. **VBT-35**: [Frontend] Message Display Component
 19. **VBT-36**: [Frontend] Message Input Component
-20. **VBT-39**: [Backend] Conversation Management API (if not done)
+20. **VBT-38**: [Backend] Conversation Management API (if not done)
 21. **VBT-37**: [Frontend] Chat Sidebar with Conversation List
 
 **Why this order?** Build the UI from outside-in: layout → display → input → sidebar. This lets you test incrementally.

@@ -9,7 +9,7 @@
 
 ## Features
 
-### Current (MVP - Phase 2 In Progress)
+### Current (MVP - Phase 2 Complete, Phase 3 Starting)
 
 - ✅ **Backend Infrastructure**: Node.js/TypeScript with Express
 - ✅ **Frontend**: React + Vite + shadcn/ui
@@ -20,8 +20,10 @@
 - ✅ **User Login**: Account lockout protection (5 attempts, 15min lock)
 - ✅ **Admin Features**: Account unlock endpoint for user management
 - ✅ **Security**: HTTP-only cookies, bcrypt hashing, rate limiting
-- ⏳ **API Key Management**: Per-user encrypted storage for Claude/OpenAI keys (database ready)
-- ⏳ **Conversation System**: Multi-user chat with history (database ready)
+- ✅ **Frontend Auth**: React Context, protected routes, automatic token refresh
+- ✅ **Token Management**: Automatic refresh on 401, proactive refresh before expiry
+- ⏳ **API Key Management**: Per-user encrypted storage for Claude/OpenAI keys (database ready, UI in Phase 7)
+- ⏳ **Conversation System**: Multi-user chat with history (database ready, Phase 3)
 
 ### Planned Features
 
@@ -269,10 +271,11 @@ See [development_tasks.md](./development_tasks.md) for the complete 8-week MVP d
 
 **Completed Phases**:
 - ✅ **Phase 1 - Foundation** (Weeks 1-2): Project structure, database, Docker
-- 🚧 **Phase 2 - Authentication** (Weeks 2-3): JWT, registration, login (IN PROGRESS)
+- ✅ **Phase 2 - Authentication** (Weeks 2-3): JWT, registration, login, auth context
 
-**Current Work**: VBT-28 completed (User Login API)
-**Next Task**: VBT-29 (check Jira for next authentication story)
+**Current Phase**: Phase 3 - Core Chat Backend (WebSocket, Claude API, message routing)
+**Last Completed**: VBT-31 (Frontend Authentication State Management)
+**Next Task**: Check Jira for Phase 3 stories (WebSocket server setup)
 
 ## Security
 

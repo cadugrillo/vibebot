@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link } from 'react-router-dom';
 import { registerSchema, type RegisterFormData } from '../schemas/auth.schema';
-import { register as registerUser } from '../services/auth.service';
+import { useAuth } from '../hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,10 +20,10 @@ import { PasswordStrengthIndicator } from '@/components/PasswordStrengthIndicato
 
 export default function Register() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
+  const { register: registerUser } = useAuth();
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [successMessage, setSuccessMessage] = useState<string>('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     register,
@@ -44,35 +44,24 @@ export default function Register() {
       return;
     }
 
-    setIsLoading(true);
+    setIsSubmitting(true);
     setErrorMessage('');
-    setSuccessMessage('');
 
     try {
-      const response = await registerUser({
+      await registerUser({
         email: data.email,
         password: data.password,
         name: data.name,
       });
 
-      if (response.error) {
-        setErrorMessage(response.error.message);
-        return;
-      }
-
-      // Show success message
-      setSuccessMessage('Account created successfully! Redirecting to login...');
-
-      // Redirect to login page after 2 seconds
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      // Navigate to chat page after successful registration
+      navigate('/chat');
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : 'An unexpected error occurred'
       );
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -96,13 +85,6 @@ export default function Register() {
               </Alert>
             )}
 
-            {/* Success Message */}
-            {successMessage && (
-              <Alert className="border-green-500 bg-green-50 text-green-900 dark:bg-green-950 dark:text-green-100">
-                <AlertDescription>{successMessage}</AlertDescription>
-              </Alert>
-            )}
-
             {/* Email Field */}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -111,7 +93,7 @@ export default function Register() {
                 type="email"
                 placeholder="name@example.com"
                 {...register('email')}
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className={errors.email ? 'border-red-500' : ''}
               />
               {errors.email && (
@@ -129,7 +111,7 @@ export default function Register() {
                 type="text"
                 placeholder="Your name"
                 {...register('name')}
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className={errors.name ? 'border-red-500' : ''}
               />
               {errors.name && (
@@ -145,7 +127,7 @@ export default function Register() {
                 type="password"
                 placeholder="Create a strong password"
                 {...register('password')}
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className={errors.password ? 'border-red-500' : ''}
               />
               {errors.password && (
@@ -164,7 +146,7 @@ export default function Register() {
                 type="password"
                 placeholder="Confirm your password"
                 {...register('confirmPassword')}
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className={errors.confirmPassword ? 'border-red-500' : ''}
               />
               {errors.confirmPassword && (
@@ -180,7 +162,7 @@ export default function Register() {
                 id="terms"
                 checked={acceptedTerms}
                 onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
-                disabled={isLoading}
+                disabled={isSubmitting}
               />
               <label
                 htmlFor="terms"
@@ -206,8 +188,8 @@ export default function Register() {
             </div>
 
             {/* Submit Button */}
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Creating account...' : 'Create account'}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? 'Creating account...' : 'Create account'}
             </Button>
 
             {/* Login Link */}
