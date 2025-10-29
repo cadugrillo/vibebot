@@ -9,6 +9,7 @@ import { parse } from 'url';
 import { verifyAccessToken } from '../utils/auth.utils';
 import { ConnectionManager } from './connectionManager';
 import { MessageHandlers } from './handlers/messageHandlers';
+import { TypingHandlers } from './handlers/typingHandlers';
 
 /**
  * WebSocket server configuration
@@ -42,6 +43,7 @@ export class VibeWebSocketServer {
   private heartbeatTimer?: NodeJS.Timeout;
   private connectionManager: ConnectionManager;
   private messageHandlers: MessageHandlers;
+  private typingHandlers: TypingHandlers;
 
   constructor(config: WebSocketServerConfig) {
     const {
@@ -67,6 +69,9 @@ export class VibeWebSocketServer {
 
     // Initialize message handlers
     this.messageHandlers = new MessageHandlers(this);
+
+    // Initialize typing handlers
+    this.typingHandlers = new TypingHandlers(this);
 
     this.initialize();
   }
@@ -185,10 +190,23 @@ export class VibeWebSocketServer {
 
   /**
    * Handle incoming WebSocket message
-   * Delegates to MessageHandlers for processing
+   * Routes to appropriate handler based on message type
    */
   private handleMessage(ws: ExtendedWebSocket, data: Buffer): void {
-    this.messageHandlers.handleMessage(ws, data);
+    try {
+      const message = JSON.parse(data.toString());
+
+      // Check message type and route accordingly
+      if (message.type?.startsWith('typing:')) {
+        this.typingHandlers.handleTypingEvent(ws, data);
+      } else if (message.type?.startsWith('message:')) {
+        this.messageHandlers.handleMessage(ws, data);
+      } else {
+        console.warn('Unknown message type:', message.type);
+      }
+    } catch (error) {
+      console.error('Error routing message:', error);
+    }
   }
 
   /**
@@ -202,6 +220,11 @@ export class VibeWebSocketServer {
   ): void {
     console.log(`WebSocket disconnected - Code: ${code}, Reason: ${reason || 'No reason'}`);
     console.log(`Connection duration: ${Date.now() - ws.connectedAt.getTime()}ms`);
+
+    // Clear typing states for this user
+    if (ws.userId) {
+      this.typingHandlers.clearUserTypingStates(ws.userId);
+    }
 
     // Remove connection from manager
     this.connectionManager.removeConnection(ws);
@@ -367,11 +390,10 @@ export class VibeWebSocketServer {
       client.close(1001, 'Server shutting down');
     });
 
-    // Clear connection manager
-    this.connectionManager.clear();
-
-    // Clear message handlers
+    // Clear handlers and managers
+    this.typingHandlers.clear();
     this.messageHandlers.clear();
+    this.connectionManager.clear();
 
     // Close the server
     return new Promise((resolve, reject) => {
