@@ -8,6 +8,7 @@ import { IncomingMessage, Server as HTTPServer } from 'http';
 import { parse } from 'url';
 import { verifyAccessToken } from '../utils/auth.utils';
 import { ConnectionManager } from './connectionManager';
+import { MessageHandlers } from './handlers/messageHandlers';
 
 /**
  * WebSocket server configuration
@@ -40,6 +41,7 @@ export class VibeWebSocketServer {
   private connectionTimeout: number;
   private heartbeatTimer?: NodeJS.Timeout;
   private connectionManager: ConnectionManager;
+  private messageHandlers: MessageHandlers;
 
   constructor(config: WebSocketServerConfig) {
     const {
@@ -62,6 +64,9 @@ export class VibeWebSocketServer {
 
     // Initialize connection manager
     this.connectionManager = new ConnectionManager();
+
+    // Initialize message handlers
+    this.messageHandlers = new MessageHandlers(this);
 
     this.initialize();
   }
@@ -180,25 +185,10 @@ export class VibeWebSocketServer {
 
   /**
    * Handle incoming WebSocket message
-   * Basic implementation - will be expanded in VBT-147
+   * Delegates to MessageHandlers for processing
    */
   private handleMessage(ws: ExtendedWebSocket, data: Buffer): void {
-    try {
-      const message = JSON.parse(data.toString());
-      console.log('Received message:', message.type);
-
-      // Echo back for now (will implement proper handlers in VBT-147)
-      this.sendToClient(ws, {
-        type: 'message:received',
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error('Error parsing message:', error);
-      this.sendToClient(ws, {
-        type: 'error',
-        message: 'Invalid message format',
-      });
-    }
+    this.messageHandlers.handleMessage(ws, data);
   }
 
   /**
@@ -379,6 +369,9 @@ export class VibeWebSocketServer {
 
     // Clear connection manager
     this.connectionManager.clear();
+
+    // Clear message handlers
+    this.messageHandlers.clear();
 
     // Close the server
     return new Promise((resolve, reject) => {
