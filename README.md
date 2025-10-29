@@ -9,25 +9,27 @@
 
 ## Features
 
-### Current (MVP - Phase 1 Complete)
+### Current (MVP - Phase 2 In Progress)
 
 - ✅ **Backend Infrastructure**: Node.js/TypeScript with Express
 - ✅ **Frontend**: React + Vite + shadcn/ui
 - ✅ **Database**: PostgreSQL with Prisma ORM
 - ✅ **Docker Support**: Full containerized deployment
-- ✅ **User Management**: Authentication with roles (Admin, User, Guest)
-- ✅ **API Key Management**: Per-user encrypted storage for Claude/OpenAI keys
-- ✅ **Conversation System**: Multi-user chat with history
+- ✅ **JWT Authentication**: Access tokens (15min) and refresh tokens (7 days)
+- ✅ **User Registration**: Email/password with validation and role assignment
+- ✅ **User Login**: Account lockout protection (5 attempts, 15min lock)
+- ✅ **Admin Features**: Account unlock endpoint for user management
+- ✅ **Security**: HTTP-only cookies, bcrypt hashing, rate limiting
+- ⏳ **API Key Management**: Per-user encrypted storage for Claude/OpenAI keys (database ready)
+- ⏳ **Conversation System**: Multi-user chat with history (database ready)
 
 ### Planned Features
 
-#### 1. Authentication & User Management
+#### 1. Remaining Authentication Features
 
-- User registration and login system
-- Role-based access control (admin, user, guest)
-- API key management per user (users can add their own Claude/OpenAI keys)
-- User quotas and rate limiting
-- Session management and security
+- API key management UI per user (users can add their own Claude/OpenAI keys)
+- User quotas and usage tracking
+- Session management dashboard
 
 #### 2. Chat & Conversation Features
 
@@ -265,18 +267,25 @@ This is currently a solo developer project. Contributions, issues, and feature r
 
 See [development_tasks.md](./development_tasks.md) for the complete 8-week MVP development plan.
 
-**Current Phase**: Phase 1 - Foundation ✅
-**Next Phase**: Phase 2 - Authentication (Weeks 2-3)
+**Completed Phases**:
+- ✅ **Phase 1 - Foundation** (Weeks 1-2): Project structure, database, Docker
+- 🚧 **Phase 2 - Authentication** (Weeks 2-3): JWT, registration, login (IN PROGRESS)
+
+**Current Work**: VBT-28 completed (User Login API)
+**Next Task**: VBT-29 (check Jira for next authentication story)
 
 ## Security
 
-- User passwords are hashed with bcrypt
-- API keys are encrypted before storage
-- JWT-based authentication
-- CORS protection
-- SQL injection protection via Prisma ORM
-- Non-root Docker containers
-- Environment-based secrets
+- **Password Security**: Bcrypt hashing with 12 salt rounds
+- **Authentication**: JWT with HTTP-only secure cookies (access: 15min, refresh: 7 days)
+- **Account Protection**: Failed login tracking with automatic lockout (5 attempts, 15min lock)
+- **Rate Limiting**: Brute force prevention (5 requests per 15 minutes)
+- **Role-Based Access**: Admin, User, and Guest roles with middleware enforcement
+- **API Keys**: Encrypted storage for Claude/OpenAI keys (database ready)
+- **CORS Protection**: Configurable origin with credentials support
+- **SQL Injection**: Protected via Prisma ORM parameterized queries
+- **Docker Security**: Non-root container users
+- **Secrets Management**: Environment-based configuration
 
 ## License
 

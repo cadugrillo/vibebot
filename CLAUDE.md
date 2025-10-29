@@ -22,7 +22,31 @@ Completed:
 - ✅ VBT-24: Docker configuration for self-hosted deployment
 - ✅ VBT-25: Setup documentation and installation guide
 
-**Next Phase**: Phase 2 - Authentication (VBT-26 onwards)
+**Phase 2 (Authentication) - 🚧 IN PROGRESS**
+
+Completed:
+- ✅ VBT-26: JWT Authentication System
+  - JWT token generation and verification (access + refresh tokens)
+  - Password hashing with bcrypt (12 salt rounds)
+  - HTTP-only secure cookies for token storage
+  - Rate limiting for brute force protection
+  - Authentication middleware for protected routes
+  - RefreshToken model added to database
+- ✅ VBT-27: User Registration API
+  - Zod schema validation with password strength requirements
+  - Email format validation and unique constraint
+  - Generic validation middleware
+  - Registration endpoint with comprehensive error handling
+  - End-to-end testing completed
+- ✅ VBT-28: User Login API
+  - Account lockout after 5 failed attempts (15-minute lock)
+  - Failed login attempt tracking per user
+  - Admin unlock endpoint for support (`POST /api/admin/users/:userId/unlock`)
+  - Enhanced error messages with remaining lock time
+  - Role-based access control (admin middleware)
+  - Comprehensive testing completed
+
+**Next Tasks**: Continue Phase 2 authentication work (VBT-29 onwards)
 
 See `development_tasks.md` for the complete development sequence.
 
@@ -30,32 +54,27 @@ See `development_tasks.md` for the complete development sequence.
 
 ## 📍 Where to Pick Up
 
-**Last Completed**: VBT-25 - Setup Documentation (Phase 1 Complete)
+**Last Completed**: VBT-28 - User Login API (Phase 2 in progress)
 
-**Next Task**: VBT-26 - Start Phase 2: Authentication
+**Next Task**: VBT-29 (check Jira for next authentication story)
 
 **To Resume Work:**
-1. Read VBT-26 and its subtasks from Jira:
+1. Read the next story from Jira:
    ```
-   Can you read story VBT-26 and its sub-tasks from my Jira Board and create a plan to execute them?
+   Can you read story VBT-29 and its sub-tasks from my Jira Board and create a plan to execute them?
    ```
-
-2. VBT-26 will likely cover:
-   - User registration and login endpoints
-   - JWT authentication implementation
-   - Password hashing with bcrypt (already installed)
-   - Role-based access control
-   - Session management with Redis
-
-3. The database schema is already set up with User model and roles (ADMIN, USER, GUEST)
 
 **Current Project State:**
 - ✅ Backend infrastructure ready (Express, TypeScript, Prisma)
 - ✅ Frontend infrastructure ready (React, Vite, shadcn/ui)
-- ✅ Database configured with User, ApiKey, Conversation, Message models
+- ✅ Database configured with User, ApiKey, Conversation, Message, RefreshToken models
 - ✅ Docker deployment ready (docker-compose.yml)
 - ✅ All documentation complete (README, DOCKER.md, DATABASE.md)
-- ⏭️ Ready for authentication implementation
+- ✅ **JWT Authentication System** - Complete with access/refresh tokens
+- ✅ **User Registration API** - Complete with validation
+- ✅ **User Login API** - Complete with lockout protection
+- ✅ **Admin Unlock Endpoint** - For account management
+- ⏭️ Ready for next authentication features
 
 ## Architecture
 
@@ -69,11 +88,15 @@ See `development_tasks.md` for the complete development sequence.
 
 ### Key System Components
 
-1. **Authentication Layer**
-   - JWT-based authentication
-   - User registration/login
-   - Role-based access control (admin, user, guest)
-   - Per-user API key management (users bring their own Claude/OpenAI keys)
+1. **Authentication Layer** ✅ **IMPLEMENTED**
+   - ✅ JWT-based authentication (access tokens: 15min, refresh tokens: 7 days)
+   - ✅ User registration with email/password validation
+   - ✅ User login with account lockout protection (5 attempts, 15min lock)
+   - ✅ Role-based access control (ADMIN, USER, GUEST)
+   - ✅ HTTP-only secure cookies for token storage
+   - ✅ Rate limiting for brute force protection (5 req/15min)
+   - ✅ Admin unlock endpoint for account management
+   - ⏳ Per-user API key management (users bring their own Claude/OpenAI keys) - TODO
 
 2. **Conversation Management**
    - Conversation CRUD operations

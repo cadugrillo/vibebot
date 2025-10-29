@@ -12,7 +12,15 @@ export async function unlockUserAccount(
   res: Response
 ): Promise<void> {
   try {
-    const { userId } = req.params;
+    const userId = req.params.userId;
+
+    if (!userId) {
+      res.status(400).json({
+        error: 'Bad Request',
+        message: 'User ID is required',
+      });
+      return;
+    }
 
     // Verify user exists
     const user = await prisma.user.findUnique({
@@ -76,7 +84,15 @@ export async function getUserStatus(
   res: Response
 ): Promise<void> {
   try {
-    const { userId } = req.params;
+    const userId = req.params.userId;
+
+    if (!userId) {
+      res.status(400).json({
+        error: 'Bad Request',
+        message: 'User ID is required',
+      });
+      return;
+    }
 
     // Fetch user with login tracking info
     const user = await prisma.user.findUnique({

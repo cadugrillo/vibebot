@@ -37,13 +37,13 @@ export async function verifyPassword(
  */
 export function generateAccessToken(payload: JwtPayload): string {
   const secret = process.env.JWT_SECRET;
-  const expiresIn = process.env.JWT_EXPIRES_IN || '15m';
 
   if (!secret) {
     throw new Error('JWT_SECRET is not defined in environment variables');
   }
 
-  return jwt.sign(payload, secret, { expiresIn });
+  const expiresIn = process.env.JWT_EXPIRES_IN || '15m';
+  return jwt.sign(payload, secret, { expiresIn } as any);
 }
 
 /**
@@ -53,7 +53,6 @@ export function generateAccessToken(payload: JwtPayload): string {
  */
 export function generateRefreshToken(payload: JwtPayload): string {
   const secret = process.env.JWT_REFRESH_SECRET;
-  const expiresIn = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
   if (!secret) {
     throw new Error(
@@ -61,7 +60,8 @@ export function generateRefreshToken(payload: JwtPayload): string {
     );
   }
 
-  return jwt.sign(payload, secret, { expiresIn });
+  const expiresIn = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+  return jwt.sign(payload, secret, { expiresIn } as any);
 }
 
 /**
