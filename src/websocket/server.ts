@@ -11,6 +11,7 @@ import { ConnectionManager } from './connectionManager';
 import { MessageHandlers } from './handlers/messageHandlers';
 import { TypingHandlers } from './handlers/typingHandlers';
 import { StatusHandlers } from './handlers/statusHandlers';
+import { WebSocketErrorHandler } from './errorHandler';
 
 /**
  * WebSocket server configuration
@@ -193,10 +194,21 @@ export class VibeWebSocketServer {
       } else if (message.type?.startsWith('message:')) {
         this.messageHandlers.handleMessage(ws, data);
       } else {
-        console.warn('Unknown message type:', message.type);
+        WebSocketErrorHandler.handleValidationError(
+          ws,
+          `Unknown message type: ${message.type}`,
+          { messageType: message.type }
+        );
       }
     } catch (error) {
-      console.error('Error routing message:', error);
+      if (error instanceof Error) {
+        WebSocketErrorHandler.handleMessageError(
+          ws,
+          'Failed to process message',
+          error,
+          { rawData: data.toString().substring(0, 100) }
+        );
+      }
     }
   }
 
@@ -235,8 +247,7 @@ export class VibeWebSocketServer {
    * Handle WebSocket connection error
    */
   private handleConnectionError(ws: ExtendedWebSocket, error: Error): void {
-    console.error('WebSocket connection error:', error.message);
-    StatusHandlers.sendError(ws, error.message, 'CONNECTION_ERROR');
+    WebSocketErrorHandler.handleConnectionError(ws, error.message, error);
     StatusHandlers.logConnectionEvent('connection:error' as any, ws, {
       error: error.message,
     });
