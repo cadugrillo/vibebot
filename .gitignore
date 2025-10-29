@@ -30,6 +30,7 @@ logs/
 # Testing
 coverage/
 .nyc_output/
+cookies.txt
 
 # OS
 Thumbs.db
