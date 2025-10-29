@@ -58,6 +58,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.18.0",
+    "@types/ws": "^8.18.1",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -66,6 +67,7 @@
     "express-rate-limit": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "prisma": "^6.18.0",
+    "ws": "^8.18.3",
     "zod": "^4.1.12"
   }
 }
