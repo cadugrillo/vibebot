@@ -5,7 +5,8 @@
 
 import { Server as WebSocketServer, WebSocket } from 'ws';
 import { IncomingMessage, Server as HTTPServer } from 'http';
-// import { parse } from 'url'; // Will be used in VBT-145 for auth
+import { parse } from 'url';
+import { verifyAccessToken } from '../utils/auth.utils';
 
 /**
  * WebSocket server configuration
@@ -34,7 +35,7 @@ export interface ExtendedWebSocket extends WebSocket {
 export class VibeWebSocketServer {
   private wss: WebSocketServer;
   private heartbeatInterval: number;
-  // @ts-expect-error - Will be used in VBT-145 for authentication timeout
+  // @ts-expect-error - Reserved for future use (e.g., idle connection timeout)
   private connectionTimeout: number;
   private heartbeatTimer?: NodeJS.Timeout;
 
@@ -55,7 +56,7 @@ export class VibeWebSocketServer {
     });
 
     this.heartbeatInterval = heartbeatInterval;
-    this.connectionTimeout = connectionTimeout; // Stored for use in VBT-145
+    this.connectionTimeout = connectionTimeout; // Reserved for future use
 
     this.initialize();
   }
@@ -80,6 +81,7 @@ export class VibeWebSocketServer {
 
   /**
    * Handle new WebSocket connection
+   * Authenticates the connection using JWT token from query parameters
    */
   private handleConnection(
     ws: WebSocket,
@@ -91,9 +93,43 @@ export class VibeWebSocketServer {
     extWs.isAlive = true;
     extWs.connectedAt = new Date();
 
-    // Extract query parameters from URL (will be used in VBT-145 for auth token)
-    // const { query } = parse(req.url || '', true);
     console.log('New WebSocket connection attempt from:', req.socket.remoteAddress);
+
+    // Extract and verify authentication token
+    const { query } = parse(req.url || '', true);
+    const token = Array.isArray(query.token) ? query.token[0] : query.token;
+
+    if (!token) {
+      console.warn('WebSocket connection rejected: No authentication token provided');
+      this.sendToClient(extWs, {
+        type: 'connection:error',
+        message: 'Authentication required',
+        code: 'AUTH_REQUIRED',
+      });
+      extWs.close(1008, 'Authentication required'); // 1008 = Policy Violation
+      return;
+    }
+
+    // Verify JWT token
+    try {
+      const payload = verifyAccessToken(token);
+
+      // Attach user information to WebSocket
+      extWs.userId = payload.userId;
+
+      console.log(`WebSocket authenticated for user: ${payload.email} (${payload.userId})`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
+      console.warn('WebSocket authentication failed:', errorMessage);
+
+      this.sendToClient(extWs, {
+        type: 'connection:error',
+        message: errorMessage,
+        code: 'AUTH_FAILED',
+      });
+      extWs.close(1008, 'Authentication failed'); // 1008 = Policy Violation
+      return;
+    }
 
     // Setup connection event handlers
     this.setupConnectionHandlers(extWs);
@@ -102,9 +138,10 @@ export class VibeWebSocketServer {
     this.sendToClient(extWs, {
       type: 'connection:established',
       timestamp: new Date().toISOString(),
+      userId: extWs.userId,
     });
 
-    console.log('WebSocket connection established');
+    console.log('WebSocket connection established and authenticated');
   }
 
   /**
@@ -247,6 +284,33 @@ export class VibeWebSocketServer {
    */
   public getClientCount(): number {
     return this.wss.clients.size;
+  }
+
+  /**
+   * Get all WebSocket connections for a specific user
+   */
+  public getConnectionsByUserId(userId: string): ExtendedWebSocket[] {
+    const connections: ExtendedWebSocket[] = [];
+    this.wss.clients.forEach((client) => {
+      const extWs = client as ExtendedWebSocket;
+      if (extWs.userId === userId) {
+        connections.push(extWs);
+      }
+    });
+    return connections;
+  }
+
+  /**
+   * Send message to a specific user (all their connections)
+   */
+  public sendToUser(userId: string, data: unknown): void {
+    const connections = this.getConnectionsByUserId(userId);
+    const message = JSON.stringify(data);
+    connections.forEach((ws) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(message);
+      }
+    });
   }
 
   /**
