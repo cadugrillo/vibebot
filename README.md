@@ -9,7 +9,7 @@
 
 ## Features
 
-### Current (MVP - Phase 2 Complete, Phase 3 In Progress - 60%)
+### Current (MVP - Phase 2 Complete, Phase 3 Partial - VBT-39 Complete)
 
 - ✅ **Backend Infrastructure**: Node.js/TypeScript with Express
 - ✅ **Frontend**: React + Vite + shadcn/ui
@@ -22,17 +22,20 @@
 - ✅ **Security**: HTTP-only cookies, bcrypt hashing, rate limiting
 - ✅ **Frontend Auth**: React Context, protected routes, automatic token refresh
 - ✅ **Token Management**: Automatic refresh on 401, proactive refresh before expiry
-- ✅ **WebSocket Server**: Real-time communication infrastructure (ws package)
-- ✅ **WebSocket Auth**: JWT authentication for WebSocket connections
+- ✅ **WebSocket Server**: Real-time communication infrastructure (ws package integrated with HTTP server)
+- ✅ **WebSocket Auth**: JWT authentication for WebSocket connections (query parameter)
 - ✅ **Connection Manager**: Multi-tab support, user and conversation tracking
 - ✅ **Message Handlers**: Send/receive/stream with rate limiting (10 msg/min)
-- ✅ **Typing Indicators**: Auto-stop after 5 seconds, spam prevention
+- ✅ **Typing Indicators**: Auto-stop after 5 seconds, spam prevention (1s min interval)
 - ✅ **Connection Events**: Full lifecycle tracking (established, authenticated, disconnected, error)
 - ✅ **Heartbeat System**: 30-second intervals for connection health monitoring
-- ⏳ **WebSocket Error Handling**: Reconnection logic (in progress)
-- ⏳ **WebSocket Client**: Frontend utility for WebSocket communication (in progress)
+- ✅ **WebSocket Error Handling**: Exponential backoff reconnection (1s-30s, max 5 retries)
+- ✅ **WebSocket Cleanup**: 6-step comprehensive cleanup on disconnect
+- ✅ **WebSocket Client**: Frontend utility with event emitter and auto-reconnect (599 lines)
+- ✅ **Message Queue**: Queue messages during disconnect (FIFO, max 100)
+- ✅ **WebSocket Testing**: Comprehensive test plan + interactive test client
 - ⏳ **API Key Management**: Per-user encrypted storage for Claude/OpenAI keys (database ready, UI in Phase 7)
-- ⏳ **Conversation System**: Multi-user chat with history (database ready, Phase 3)
+- ⏳ **Conversation System**: Multi-user chat with history (database ready, remaining Phase 3)
 
 ### Planned Features
 
@@ -282,20 +285,27 @@ See [development_tasks.md](./development_tasks.md) for the complete 8-week MVP d
 - ✅ **Phase 1 - Foundation** (Weeks 1-2): Project structure, database, Docker
 - ✅ **Phase 2 - Authentication** (Weeks 2-3): JWT, registration, login, auth context
 
-**Current Phase**: 🚧 **Phase 3 - Core Chat Backend** (60% complete)
-- ✅ WebSocket Server Infrastructure (VBT-144)
-- ✅ WebSocket Authentication (VBT-145)
-- ✅ Connection Manager (VBT-146)
-- ✅ Message Event Handlers (VBT-147)
-- ✅ Typing Indicators (VBT-148)
-- ✅ Connection Status Events (VBT-149)
-- ⏳ Error Handling & Reconnection (VBT-150)
-- ⏳ Cleanup on Disconnect (VBT-151)
-- ⏳ WebSocket Client Utility (VBT-152)
-- ⏳ End-to-End Testing (VBT-153)
+**Current Phase**: 🚧 **Phase 3 - Core Chat Backend** (VBT-39 Complete - 100%)
+- ✅ **VBT-39: WebSocket Server for Real-time Communication** - COMPLETE (10/10 sub-tasks)
+  - ✅ WebSocket Server Infrastructure (VBT-144) - ws package integrated with HTTP server
+  - ✅ WebSocket Authentication (VBT-145) - JWT via query parameter
+  - ✅ Connection Manager (VBT-146) - Multi-tab support, user/conversation tracking
+  - ✅ Message Event Handlers (VBT-147) - Send/receive/stream with rate limiting (10 msg/min)
+  - ✅ Typing Indicators (VBT-148) - 5s auto-stop, spam prevention
+  - ✅ Connection Status Events (VBT-149) - Full lifecycle tracking
+  - ✅ Error Handling & Reconnection (VBT-150) - Exponential backoff, max 5 retries
+  - ✅ Cleanup on Disconnect (VBT-151) - 6-step comprehensive cleanup
+  - ✅ WebSocket Client Utility (VBT-152) - 599 lines, event emitter, auto-reconnect
+  - ✅ End-to-End Testing (VBT-153) - Test plan + interactive test client
 
-**Last Completed**: VBT-149 (Connection Status Events)
-**Next Task**: VBT-150 (Error Handling and Reconnection Logic)
+**Remaining Phase 3 Tasks:**
+- ⏳ Claude API Integration
+- ⏳ AI Provider Abstraction Layer
+- ⏳ Conversation Management API
+- ⏳ Message Processing and Routing
+
+**Last Completed**: VBT-153 (Test WebSocket End-to-End) - VBT-39 Story Complete!
+**Next Task**: Next Phase 3 story (Claude API or Conversation Management)
 
 ## Security
 
