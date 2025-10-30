@@ -15,7 +15,9 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:claude": "tsx src/services/ai/claude/test-connection.ts",
+    "test:claude:models": "tsx src/services/ai/claude/test-models.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -57,6 +59,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
     "@prisma/client": "^6.18.0",
     "@types/ws": "^8.18.1",
     "bcrypt": "^6.0.0",
