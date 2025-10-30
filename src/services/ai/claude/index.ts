@@ -8,3 +8,4 @@ export { loadClaudeConfig, validateClaudeConfig, getClaudeConfig } from './confi
 export type { ClaudeConfig } from './config';
 export * from './types';
 export * from './models';
+export { StreamHandler, processStream, createTextCallback } from './streaming';

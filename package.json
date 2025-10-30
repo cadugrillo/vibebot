@@ -17,7 +17,8 @@
     "db:reset": "prisma migrate reset",
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:claude": "tsx src/services/ai/claude/test-connection.ts",
-    "test:claude:models": "tsx src/services/ai/claude/test-models.ts"
+    "test:claude:models": "tsx src/services/ai/claude/test-models.ts",
+    "test:claude:stream": "tsx src/services/ai/claude/test-streaming.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

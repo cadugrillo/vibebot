@@ -14,9 +14,11 @@ claude/
 ├── config.ts             # Configuration loading and validation
 ├── types.ts              # TypeScript interfaces and types
 ├── models.ts             # Model definitions, pricing, and utilities (VBT-156)
+├── streaming.ts          # Streaming response handler (VBT-157)
 ├── index.ts              # Module exports
 ├── test-connection.ts    # Connection test script
 ├── test-models.ts        # Multi-model support test script (VBT-156)
+├── test-streaming.ts     # Streaming functionality test script (VBT-157)
 └── README.md            # This file
 ```
 
@@ -116,12 +118,12 @@ const currentModel = claudeService.getDefaultModel();
 console.log('Current model:', currentModel);
 
 // Switch to a different model
-claudeService.setDefaultModel(ClaudeModel.HAIKU_4);
-console.log('Switched to Haiku 4');
+claudeService.setDefaultModel(ClaudeModel.HAIKU_4_5);
+console.log('Switched to Haiku 4.5');
 
 // Validate a model
-const isValid = claudeService.isModelValid(ClaudeModel.OPUS_4);
-console.log('Opus 4 valid:', isValid);
+const isValid = claudeService.isModelValid(ClaudeModel.OPUS_4_1);
+console.log('Opus 4.1 valid:', isValid);
 
 // Get model information
 const modelInfo = claudeService.getModelInfo(ClaudeModel.SONNET_4_5);
@@ -130,7 +132,7 @@ console.log('Context window:', modelInfo?.contextWindow);
 console.log('Input cost:', modelInfo?.pricing.input);
 
 // Select model for a specific request
-const model = claudeService.selectModel(ClaudeModel.HAIKU_4); // or use default
+const model = claudeService.selectModel(ClaudeModel.HAIKU_4_5); // or use default
 console.log('Using model:', model);
 ```
 
@@ -152,10 +154,66 @@ const cost = calculateCost(
 console.log(`Cost: $${cost?.toFixed(4)}`);
 
 // Compare costs across models
-[ClaudeModel.HAIKU_4, ClaudeModel.SONNET_4_5, ClaudeModel.OPUS_4].forEach(model => {
+[ClaudeModel.HAIKU_4_5, ClaudeModel.SONNET_4_5, ClaudeModel.OPUS_4_1].forEach(model => {
   const cost = calculateCost(model, inputTokens, outputTokens);
   console.log(`${model}: $${cost?.toFixed(4)}`);
 });
+```
+
+### Streaming Responses (VBT-157) ✅
+
+```typescript
+import { getClaudeService, createTextCallback, ClaudeModel } from './services/ai/claude';
+
+const claudeService = getClaudeService();
+
+// Create a callback to handle streaming events
+const { callback, getContent } = createTextCallback();
+
+// Stream a response
+const response = await claudeService.streamResponse(
+  {
+    conversationId: 'conv-123',
+    userId: 'user-456',
+    userMessage: 'Write a haiku about TypeScript',
+    messageId: 'msg-789',
+    model: ClaudeModel.HAIKU_4_5,
+    maxTokens: 100,
+  },
+  callback
+);
+
+// Access the complete response
+console.log('Content:', response.content);
+console.log('Tokens used:', response.tokenUsage.totalTokens);
+console.log('Cost:', response.cost.totalCost);
+console.log('Model:', response.model);
+
+// Or use a custom callback for real-time processing
+const customCallback = (event) => {
+  if (event.type === 'delta') {
+    // Received a text chunk - send to WebSocket, UI, etc.
+    console.log('Chunk:', event.content);
+    ws.send(JSON.stringify({ type: 'text', content: event.content }));
+  } else if (event.type === 'complete') {
+    // Stream finished
+    console.log('Stream complete!');
+  }
+};
+
+// Stream with system prompt and temperature
+const response2 = await claudeService.streamResponse(
+  {
+    conversationId: 'conv-123',
+    userId: 'user-456',
+    userMessage: 'Explain quantum computing',
+    systemPrompt: 'You are a helpful physics teacher. Keep explanations simple.',
+    model: ClaudeModel.SONNET_4_5,
+    temperature: 0.7,
+    maxTokens: 500,
+  },
+  customCallback
+);
 ```
 
 ## Development Status
@@ -181,9 +239,16 @@ console.log(`Cost: $${cost?.toFixed(4)}`);
 - [x] Add model switching capability
 - [x] Cost calculation utilities
 
+### VBT-157: Implement Streaming Response Handler ✅ COMPLETE
+- [x] StreamHandler class for processing stream events
+- [x] Real-time text delta callbacks
+- [x] Token usage tracking from stream events
+- [x] Cost calculation integration
+- [x] streamResponse method in ClaudeService
+- [x] Comprehensive streaming test script
+
 ### Upcoming Tasks
 
-- **VBT-157**: Implement Streaming Response Handler
 - **VBT-158**: Add Token Counting and Usage Tracking
 - **VBT-159**: Implement Rate Limit Detection and Handling
 - **VBT-160**: Add Comprehensive Error Handling and Retry Logic
@@ -205,39 +270,36 @@ console.log(`Cost: $${cost?.toFixed(4)}`);
 
 ### Claude 4.5 Sonnet ⭐ RECOMMENDED
 - **ID**: `claude-sonnet-4-5-20250929`
+- **Enum**: `ClaudeModel.SONNET_4_5`
 - **Tier**: Standard (Balanced)
-- **Context**: 200,000 tokens
-- **Max Output**: 8,192 tokens
+- **Context**: 200,000 tokens (1M beta)
+- **Max Output**: 64,000 tokens
 - **Pricing**: $3/1M input, $15/1M output
-- **Features**: Vision ✅ | Tools ✅ | Caching ✅
+- **Features**: Vision ✅ | Tools ✅ | Caching ✅ | Extended Thinking ✅
+- **Released**: September 29, 2025
 - **Best for**: General-purpose, production workloads
 
-### Claude 3.5 Sonnet
-- **ID**: `claude-3-5-sonnet-20241022`
-- **Tier**: Standard
-- **Context**: 200,000 tokens
-- **Max Output**: 8,192 tokens
-- **Pricing**: $3/1M input, $15/1M output
-- **Features**: Vision ✅ | Tools ✅ | Caching ✅
-- **Best for**: Previous generation, still capable
-
-### Claude 4 Opus
-- **ID**: `claude-opus-4-20250514`
-- **Tier**: Premium (High Performance)
-- **Context**: 200,000 tokens
-- **Max Output**: 8,192 tokens
-- **Pricing**: $15/1M input, $75/1M output
-- **Features**: Vision ✅ | Tools ✅ | Caching ✅
-- **Best for**: Complex tasks requiring deep reasoning
-
-### Claude 4 Haiku
-- **ID**: `claude-haiku-4-20250228`
+### Claude 4.5 Haiku
+- **ID**: `claude-haiku-4-5-20251001`
+- **Enum**: `ClaudeModel.HAIKU_4_5`
 - **Tier**: Economy (Cost-Effective)
 - **Context**: 200,000 tokens
-- **Max Output**: 8,192 tokens
-- **Pricing**: $0.80/1M input, $4/1M output
-- **Features**: Vision ✅ | Tools ✅ | Caching ✅
+- **Max Output**: 64,000 tokens
+- **Pricing**: $1/1M input, $5/1M output
+- **Features**: Vision ✅ | Tools ✅ | Caching ✅ | Extended Thinking ✅
+- **Released**: October 1, 2025
 - **Best for**: Simple tasks, high-volume, speed-critical
+
+### Claude 4.1 Opus
+- **ID**: `claude-opus-4-1-20250805`
+- **Enum**: `ClaudeModel.OPUS_4_1`
+- **Tier**: Premium (High Performance)
+- **Context**: 200,000 tokens
+- **Max Output**: 32,000 tokens
+- **Pricing**: $15/1M input, $75/1M output
+- **Features**: Vision ✅ | Tools ✅ | Caching ✅ | Extended Thinking ✅
+- **Released**: August 5, 2025
+- **Best for**: Complex tasks requiring deep reasoning
 
 ## Error Handling
 
@@ -274,12 +336,29 @@ npm run test:claude:models
 ```
 
 This test verifies:
-- ✅ All 4 models are available (Sonnet 4.5/3.5, Opus 4, Haiku 4)
+- ✅ All 3 models are available (Sonnet 4.5, Opus 4.1, Haiku 4.5)
 - ✅ Model information retrieval
 - ✅ Model validation (valid and invalid cases)
 - ✅ Model switching capability
 - ✅ Cost calculation for different models
 - ✅ Per-request model selection
+
+### Streaming Response Test (VBT-157)
+
+Test streaming functionality with different models and parameters:
+```bash
+npm run test:claude:stream
+```
+
+This test verifies:
+- ✅ Basic streaming with Haiku 4.5
+- ✅ System prompts working correctly
+- ✅ Multi-model streaming (Sonnet 4.5)
+- ✅ Temperature parameter support
+- ✅ Real-time text delta delivery
+- ✅ Token usage tracking
+- ✅ Cost calculation per request
+- ✅ Stream completion handling
 
 Expected output:
 ```
@@ -298,7 +377,7 @@ Step 2: Available Models
    Family: SONNET | Tier: STANDARD
    Description: Latest balanced model with excellent performance and cost efficiency
    Context Window: 200,000 tokens
-   Max Output: 8,192 tokens
+   Max Output: 64,000 tokens
    Pricing:
      - Input: $3 per 1M tokens
      - Output: $15 per 1M tokens
@@ -314,11 +393,56 @@ Step 2: Available Models
 ============================================================
 ✅ ALL TESTS PASSED!
 Multi-model support is working correctly:
-  - ✅ 4 models available (Sonnet 4.5/3.5, Opus 4, Haiku 4)
+  - ✅ 3 models available (Sonnet 4.5, Opus 4.1, Haiku 4.5)
   - ✅ Model validation working
   - ✅ Model switching working
   - ✅ Cost calculation working
   - ✅ Per-request model selection working
+============================================================
+```
+
+Streaming test output:
+```
+============================================================
+Claude Streaming Test - VBT-157
+============================================================
+
+Step 2: Testing Simple Streaming
+------------------------------------------------------------
+Prompt: "Write a haiku about TypeScript"
+
+Stream started for message: test-msg-1
+# TypeScript Haiku
+
+Types guide the code
+Runtime errors caught early
+Peace of mind prevails
+
+✅ Stream completed! Total length: 91 characters
+
+Response Summary:
+  - Model: claude-haiku-4-5-20251001
+  - Input tokens: 14
+  - Output tokens: 25
+  - Total tokens: 39
+  - Cost: $0.000139
+
+[... additional tests ...]
+
+============================================================
+✅ ALL STREAMING TESTS PASSED!
+============================================================
+
+Summary:
+  - ✅ Basic streaming working
+  - ✅ System prompts working
+  - ✅ Multi-model support working
+  - ✅ Temperature parameter working
+  - ✅ Real-time text delivery working
+  - ✅ Token counting working
+  - ✅ Cost calculation working
+
+Total test cost: $0.001012
 ============================================================
 ```
 

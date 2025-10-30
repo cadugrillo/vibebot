@@ -13,14 +13,11 @@ export enum ClaudeModel {
   // Claude 4.5 Sonnet (Latest - Balanced performance and cost)
   SONNET_4_5 = 'claude-sonnet-4-5-20250929',
 
-  // Claude 3.5 Sonnet (Previous generation)
-  SONNET_3_5 = 'claude-3-5-sonnet-20241022',
+  // Claude 4.5 Haiku (Fastest, most cost-effective)
+  HAIKU_4_5 = 'claude-haiku-4-5-20251001',
 
-  // Claude 4 Opus (Highest intelligence, slower, most expensive)
-  OPUS_4 = 'claude-opus-4-20250514',
-
-  // Claude 4 Haiku (Fastest, cheapest, good for simple tasks)
-  HAIKU_4 = 'claude-haiku-4-20250228',
+  // Claude 4.1 Opus (Highest intelligence)
+  OPUS_4_1 = 'claude-opus-4-1-20250805',
 }
 
 /**
@@ -73,7 +70,7 @@ export interface ModelConfig {
 
 /**
  * All available Claude models with their configurations
- * Pricing as of January 2025 (verify at https://www.anthropic.com/pricing)
+ * Pricing as of September 2025 (verify at https://www.anthropic.com/pricing)
  */
 export const CLAUDE_MODELS: Record<ClaudeModel, ModelConfig> = {
   [ClaudeModel.SONNET_4_5]: {
@@ -81,10 +78,10 @@ export const CLAUDE_MODELS: Record<ClaudeModel, ModelConfig> = {
     name: 'Claude 4.5 Sonnet',
     family: ModelFamily.SONNET,
     tier: ModelTier.STANDARD,
-    description: 'Latest balanced model with excellent performance and cost efficiency',
+    description: 'Latest balanced model with excellent performance and cost efficiency. Supports extended thinking.',
 
-    maxTokens: 8192,
-    contextWindow: 200000,      // 200k tokens
+    maxTokens: 64000,           // 64k max output tokens
+    contextWindow: 200000,      // 200k tokens (1M beta available)
     supportsVision: true,
     supportsTools: true,
     supportsCaching: true,
@@ -92,7 +89,7 @@ export const CLAUDE_MODELS: Record<ClaudeModel, ModelConfig> = {
     pricing: {
       input: 3.00,              // $3 per 1M input tokens
       output: 15.00,            // $15 per 1M output tokens
-      cachedInput: 0.30,        // $0.30 per 1M cached tokens
+      cachedInput: 0.30,        // $0.30 per 1M cached tokens (estimated)
     },
 
     releaseDate: '2025-09-29',
@@ -100,39 +97,39 @@ export const CLAUDE_MODELS: Record<ClaudeModel, ModelConfig> = {
     recommended: true,
   },
 
-  [ClaudeModel.SONNET_3_5]: {
-    id: ClaudeModel.SONNET_3_5,
-    name: 'Claude 3.5 Sonnet',
-    family: ModelFamily.SONNET,
-    tier: ModelTier.STANDARD,
-    description: 'Previous generation Sonnet model, still highly capable',
+  [ClaudeModel.HAIKU_4_5]: {
+    id: ClaudeModel.HAIKU_4_5,
+    name: 'Claude 4.5 Haiku',
+    family: ModelFamily.HAIKU,
+    tier: ModelTier.ECONOMY,
+    description: 'Fastest and most cost-effective model with extended thinking support',
 
-    maxTokens: 8192,
-    contextWindow: 200000,
+    maxTokens: 64000,           // 64k max output tokens
+    contextWindow: 200000,      // 200k tokens
     supportsVision: true,
     supportsTools: true,
     supportsCaching: true,
 
     pricing: {
-      input: 3.00,
-      output: 15.00,
-      cachedInput: 0.30,
+      input: 1.00,              // $1 per 1M input tokens
+      output: 5.00,             // $5 per 1M output tokens
+      cachedInput: 0.10,        // $0.10 per 1M cached tokens (estimated)
     },
 
-    releaseDate: '2024-10-22',
+    releaseDate: '2025-10-01',
     deprecated: false,
     recommended: false,
   },
 
-  [ClaudeModel.OPUS_4]: {
-    id: ClaudeModel.OPUS_4,
-    name: 'Claude 4 Opus',
+  [ClaudeModel.OPUS_4_1]: {
+    id: ClaudeModel.OPUS_4_1,
+    name: 'Claude 4.1 Opus',
     family: ModelFamily.OPUS,
     tier: ModelTier.PREMIUM,
-    description: 'Most intelligent model for complex tasks requiring deep reasoning',
+    description: 'Most intelligent model for complex tasks requiring deep reasoning and extended thinking',
 
-    maxTokens: 8192,
-    contextWindow: 200000,
+    maxTokens: 32000,           // 32k max output tokens
+    contextWindow: 200000,      // 200k tokens
     supportsVision: true,
     supportsTools: true,
     supportsCaching: true,
@@ -140,34 +137,10 @@ export const CLAUDE_MODELS: Record<ClaudeModel, ModelConfig> = {
     pricing: {
       input: 15.00,             // $15 per 1M input tokens
       output: 75.00,            // $75 per 1M output tokens
-      cachedInput: 1.50,        // $1.50 per 1M cached tokens
+      cachedInput: 1.50,        // $1.50 per 1M cached tokens (estimated)
     },
 
-    releaseDate: '2025-05-14',
-    deprecated: false,
-    recommended: false,
-  },
-
-  [ClaudeModel.HAIKU_4]: {
-    id: ClaudeModel.HAIKU_4,
-    name: 'Claude 4 Haiku',
-    family: ModelFamily.HAIKU,
-    tier: ModelTier.ECONOMY,
-    description: 'Fastest and most cost-effective model for simple tasks',
-
-    maxTokens: 8192,
-    contextWindow: 200000,
-    supportsVision: true,
-    supportsTools: true,
-    supportsCaching: true,
-
-    pricing: {
-      input: 0.80,              // $0.80 per 1M input tokens
-      output: 4.00,             // $4 per 1M output tokens
-      cachedInput: 0.08,        // $0.08 per 1M cached tokens
-    },
-
-    releaseDate: '2025-02-28',
+    releaseDate: '2025-08-05',
     deprecated: false,
     recommended: false,
   },

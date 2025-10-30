@@ -66,7 +66,7 @@ Completed:
 
 **Phase 2 Complete!**
 
-**Phase 3 (Core Chat Backend) - ✅ PARTIAL COMPLETE**
+**Phase 3 (Core Chat Backend) - 🚧 IN PROGRESS**
 
 Completed:
 - ✅ VBT-39: WebSocket Server for Real-time Communication (10/10 sub-tasks complete - ✅ DONE!)
@@ -81,8 +81,19 @@ Completed:
   - ✅ VBT-152: Create WebSocket Client Utility (Frontend) (599 lines, event emitter, auto-reconnect, full TypeScript)
   - ✅ VBT-153: Test WebSocket End-to-End (comprehensive test plan + interactive test client)
 
+- 🚧 VBT-40: Claude API Integration (4/10 sub-tasks complete - 🚧 IN PROGRESS)
+  - ✅ VBT-154: Install and Setup Claude TypeScript SDK (@anthropic-ai/sdk v0.68.0)
+  - ✅ VBT-155: Create Claude Service Layer (ClaudeService singleton, config, types)
+  - ✅ VBT-156: Multi-Model Support (Sonnet 4.5, Haiku 4.5, Opus 4.1, cost calculation)
+  - ✅ VBT-157: Streaming Response Handler (StreamHandler class, real-time deltas, token tracking)
+  - ⏳ VBT-158: Add Token Counting and Usage Tracking
+  - ⏳ VBT-159: Implement Rate Limit Detection and Handling
+  - ⏳ VBT-160: Add Comprehensive Error Handling and Retry Logic
+  - ⏳ VBT-161: Implement Cost Tracking System
+  - ⏳ VBT-162: Add System Prompt Support
+  - ⏳ VBT-163: Integration Testing with WebSocket Server
+
 Remaining Phase 3 Tasks:
-- ⏳ Claude API integration
 - ⏳ AI provider abstraction layer
 - ⏳ Conversation management API
 - ⏳ Message processing and routing
@@ -93,7 +104,7 @@ See `development_tasks.md` for the complete development sequence.
 
 ## 📍 Where to Pick Up
 
-**Last Completed**: VBT-153 - Test WebSocket End-to-End (VBT-39 complete!)
+**Last Completed**: VBT-157 - Implement Streaming Response Handler (VBT-40 In Progress!)
 
 **Next Task**: Ready for next Phase 3 story (Claude API Integration, Conversation Management, or other Phase 3 tasks)
 

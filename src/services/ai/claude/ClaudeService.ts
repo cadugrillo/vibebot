@@ -17,6 +17,13 @@ import {
   getAvailableModels,
   getRecommendedModel,
 } from './models';
+import {
+  ClaudeMessage,
+  StreamParams,
+  StreamCallback,
+  ClaudeResponse,
+} from './types';
+import { processStream } from './streaming';
 
 /**
  * ClaudeService class
@@ -238,6 +245,130 @@ export class ClaudeService {
         error instanceof Error ? error.message : 'Invalid model selection',
         400,
         false
+      );
+    }
+  }
+
+  /**
+   * Stream a response from Claude API
+   * VBT-157: Streaming response handler
+   * @param params - Streaming parameters
+   * @param callback - Callback function for stream events
+   * @returns Complete response with token usage and cost
+   * @throws ClaudeServiceError on API or stream errors
+   */
+  public async streamResponse(
+    params: StreamParams,
+    callback: StreamCallback
+  ): Promise<ClaudeResponse> {
+    const {
+      userMessage,
+      messageId,
+      model,
+      systemPrompt,
+      maxTokens,
+      temperature,
+    } = params;
+
+    // Select and validate model
+    const selectedModel = this.selectModel(model);
+    const modelConfig = getModelConfig(selectedModel);
+
+    if (!modelConfig) {
+      throw new ClaudeServiceError(
+        ClaudeErrorType.INVALID_REQUEST,
+        `Model configuration not found for: ${selectedModel}`,
+        400,
+        false
+      );
+    }
+
+    // Build messages array (for now just the user message, later we'll add conversation history)
+    const messages: ClaudeMessage[] = [
+      {
+        role: 'user',
+        content: userMessage,
+      },
+    ];
+
+    // Prepare API request parameters
+    const requestParams: Anthropic.MessageCreateParams = {
+      model: selectedModel,
+      max_tokens: maxTokens || this.config.maxTokens,
+      messages: messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      })),
+      stream: true,
+    };
+
+    // Add optional parameters
+    if (systemPrompt) {
+      requestParams.system = systemPrompt;
+    }
+
+    if (temperature !== undefined) {
+      requestParams.temperature = temperature;
+    }
+
+    console.log(`Streaming response with model: ${selectedModel}`);
+    console.log(`Max tokens: ${requestParams.max_tokens}`);
+    console.log(`System prompt: ${systemPrompt ? 'Yes' : 'No'}`);
+
+    try {
+      // Create streaming request
+      const stream = await this.client.messages.create(requestParams);
+
+      // Process stream with handler
+      const response = await processStream(
+        stream as Anthropic.Stream<Anthropic.MessageStreamEvent>,
+        messageId || `msg-${Date.now()}`,
+        callback
+      );
+
+      console.log(`✅ Stream completed successfully`);
+      console.log(`   Token usage: ${response.tokenUsage.inputTokens} input, ${response.tokenUsage.outputTokens} output`);
+      console.log(`   Cost: $${response.cost.totalCost.toFixed(4)}`);
+      console.log(`   Content length: ${response.content.length} characters`);
+
+      return response;
+    } catch (error) {
+      console.error('❌ Stream failed:', error);
+
+      // Handle specific Anthropic errors
+      if (error instanceof Anthropic.AuthenticationError) {
+        throw new ClaudeServiceError(
+          ClaudeErrorType.AUTHENTICATION,
+          'Invalid API key',
+          401,
+          false
+        );
+      }
+
+      if (error instanceof Anthropic.RateLimitError) {
+        throw new ClaudeServiceError(
+          ClaudeErrorType.RATE_LIMIT,
+          'Rate limit exceeded',
+          429,
+          true
+        );
+      }
+
+      if (error instanceof Anthropic.APIError) {
+        throw new ClaudeServiceError(
+          ClaudeErrorType.INTERNAL,
+          `Claude API error: ${error.message}`,
+          error.status || 500,
+          false
+        );
+      }
+
+      // Generic error
+      throw new ClaudeServiceError(
+        ClaudeErrorType.INTERNAL,
+        error instanceof Error ? error.message : 'Stream failed',
+        500,
+        true
       );
     }
   }
