@@ -179,7 +179,7 @@
         <div id="status" class="status disconnected">DISCONNECTED</div>
         <div id="connection-info" style="color: #666; font-size: 14px;">
             <p>Connection ID: <span id="connectionId">N/A</span></p>
-            <p>URL: <span id="wsUrl">ws://localhost:5000/ws</span></p>
+            <p>URL: <span id="wsUrl">ws://localhost:3000/ws</span></p>
         </div>
     </div>
 
@@ -293,7 +293,7 @@
             }
 
             const finalToken = document.getElementById('token').value.trim();
-            const url = `ws://localhost:5000/ws?token=${encodeURIComponent(finalToken)}`;
+            const url = `ws://localhost:3000/ws?token=${encodeURIComponent(finalToken)}`;
             document.getElementById('wsUrl').textContent = url;
 
             log('Connecting to WebSocket server...', 'info');
