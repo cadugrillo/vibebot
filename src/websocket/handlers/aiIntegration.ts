@@ -68,7 +68,7 @@ export class AIIntegrationHandler {
     this.wsServer = wsServer;
     this.config = {
       defaultProvider: ProviderType.CLAUDE,
-      systemPrompt: 'default', // Use default preset
+      systemPrompt: undefined, // Use provider's default
       maxTokens: 2048,
       temperature: 0.7,
       ...config,
@@ -95,6 +95,16 @@ export class AIIntegrationHandler {
 
       // Create provider using factory
       const factory = AIProviderFactory.getInstance();
+
+      // Register ClaudeProvider if not already registered
+      const registeredProviders = factory.getRegisteredProviders();
+      if (!registeredProviders.includes(ProviderType.CLAUDE)) {
+        factory.registerProvider(
+          ProviderType.CLAUDE,
+          (config) => new ClaudeProvider(config)
+        );
+      }
+
       this.provider = factory.createProvider(
         this.config.defaultProvider || ProviderType.CLAUDE,
         providerConfig

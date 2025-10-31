@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🤖 AI Integration Test Client</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 1.1em;
+    }
+
+    .controls {
+      padding: 20px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .control-group label {
+      font-weight: 600;
+      color: #495057;
+    }
+
+    input[type="text"] {
+      padding: 8px 12px;
+      border: 2px solid #dee2e6;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 14px;
+    }
+
+    button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.secondary {
+      background: #6c757d;
+    }
+
+    button.secondary:hover {
+      background: #5a6268;
+    }
+
+    button.danger {
+      background: #dc3545;
+    }
+
+    button.danger:hover {
+      background: #c82333;
+    }
+
+    .stats {
+      padding: 20px;
+      background: white;
+      border-bottom: 1px solid #dee2e6;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .stat-card {
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 5px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #212529;
+    }
+
+    .status-connected { color: #28a745; }
+    .status-disconnected { color: #dc3545; }
+    .status-connecting { color: #ffc107; }
+
+    #messages {
+      height: 500px;
+      overflow-y: auto;
+      padding: 20px;
+      background: #f8f9fa;
+    }
+
+    .message {
+      margin-bottom: 15px;
+      padding: 15px;
+      border-radius: 8px;
+      animation: slideIn 0.3s ease;
+      max-width: 80%;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message.user {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      margin-left: auto;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.ai {
+      background: white;
+      border: 2px solid #e9ecef;
+      margin-right: auto;
+      border-bottom-left-radius: 4px;
+    }
+
+    .message.streaming {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      margin-right: auto;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 2px solid #f5c6cb;
+      font-weight: 600;
+    }
+
+    .message.system {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 2px solid #bee5eb;
+      text-align: center;
+      margin: 0 auto;
+      max-width: 100%;
+    }
+
+    .message-meta {
+      font-size: 11px;
+      opacity: 0.7;
+      margin-bottom: 5px;
+    }
+
+    .message-content {
+      line-height: 1.6;
+      word-wrap: break-word;
+    }
+
+    .input-area {
+      padding: 20px;
+      background: white;
+      border-top: 2px solid #dee2e6;
+      display: flex;
+      gap: 10px;
+    }
+
+    #messageInput {
+      flex: 1;
+      padding: 12px 16px;
+      font-size: 16px;
+      border: 2px solid #dee2e6;
+      border-radius: 8px;
+    }
+
+    #messageInput:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .test-scenarios {
+      padding: 20px;
+      background: #f8f9fa;
+      border-top: 1px solid #dee2e6;
+    }
+
+    .test-scenarios h3 {
+      margin-bottom: 15px;
+      color: #495057;
+    }
+
+    .scenario-buttons {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 10px;
+    }
+
+    .scenario-button {
+      padding: 12px;
+      text-align: left;
+      background: white;
+      border: 2px solid #dee2e6;
+      color: #495057;
+    }
+
+    .scenario-button:hover {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    .streaming-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ffc107;
+      margin-right: 8px;
+      animation: blink 1s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Scrollbar styling */
+    #messages::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    #messages::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    #messages::-webkit-scrollbar-thumb {
+      background: #667eea;
+      border-radius: 4px;
+    }
+
+    #messages::-webkit-scrollbar-thumb:hover {
+      background: #5568d3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🤖 AI Integration Test Client</h1>
+      <p>Test WebSocket + AI Provider Integration</p>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label>Server:</label>
+        <input type="text" id="serverUrl" value="ws://localhost:3000" style="width: 200px;">
+      </div>
+      <div class="control-group">
+        <label>Token:</label>
+        <input type="text" id="token" placeholder="JWT token" style="width: 300px;">
+      </div>
+      <button id="connectBtn" onclick="connect()">Connect</button>
+      <button class="danger" onclick="disconnect()">Disconnect</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">Connection Status</div>
+        <div class="stat-value" id="status">
+          <span class="status-disconnected">●</span> Disconnected
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Conversation ID</div>
+        <div class="stat-value" id="conversationId" style="font-size: 14px;">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Messages Sent</div>
+        <div class="stat-value" id="messageCount">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">AI Responses</div>
+        <div class="stat-value" id="aiResponseCount">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Streaming Status</div>
+        <div class="stat-value" id="streamingStatus" style="font-size: 14px;">Idle</div>
+      </div>
+    </div>
+
+    <div id="messages"></div>
+
+    <div class="input-area">
+      <input type="text" id="messageInput" placeholder="Type a message and press Enter..." />
+      <button onclick="sendMessage()">Send</button>
+      <button class="secondary" onclick="clearMessages()">Clear</button>
+    </div>
+
+    <div class="test-scenarios">
+      <h3>📋 Test Scenarios</h3>
+      <div class="scenario-buttons">
+        <button class="scenario-button" onclick="testSimpleQuestion()">
+          <strong>1. Simple Question</strong><br>
+          <small>Test basic AI response</small>
+        </button>
+        <button class="scenario-button" onclick="testStreamingSpeed()">
+          <strong>2. Long Response</strong><br>
+          <small>Test streaming performance</small>
+        </button>
+        <button class="scenario-button" onclick="testConversationContext()">
+          <strong>3. Context Memory</strong><br>
+          <small>Test conversation history</small>
+        </button>
+        <button class="scenario-button" onclick="testMultipleQuestions()">
+          <strong>4. Rapid Fire</strong><br>
+          <small>Send multiple quick messages</small>
+        </button>
+        <button class="scenario-button" onclick="testErrorHandling()">
+          <strong>5. Error Test</strong><br>
+          <small>Test error handling</small>
+        </button>
+        <button class="scenario-button" onclick="testRateLimiting()">
+          <strong>6. Rate Limit Test</strong><br>
+          <small>Test rate limiting (12 msgs)</small>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let ws = null;
+    let messageCount = 0;
+    let aiResponseCount = 0;
+    let currentAIMessage = null;
+    let streamStartTime = null;
+    const conversationId = 'test-conv-' + Date.now();
+
+    // Update UI on load
+    document.getElementById('conversationId').textContent = conversationId;
+
+    function connect() {
+      const serverUrl = document.getElementById('serverUrl').value;
+      const token = document.getElementById('token').value;
+
+      if (!token) {
+        alert('Please enter a JWT token');
+        return;
+      }
+
+      updateStatus('Connecting...', 'connecting');
+      addSystemMessage('Connecting to ' + serverUrl + '...');
+
+      ws = new WebSocket(`${serverUrl}?token=${token}`);
+
+      ws.onopen = () => {
+        updateStatus('Connected', 'connected');
+        addSystemMessage('✅ Connected to WebSocket server');
+        console.log('WebSocket connected');
+      };
+
+      ws.onmessage = (event) => {
+        console.log('Received message:', event.data);
+        try {
+          const data = JSON.parse(event.data);
+          handleMessage(data);
+        } catch (error) {
+          console.error('Error parsing message:', error);
+        }
+      };
+
+      ws.onclose = () => {
+        updateStatus('Disconnected', 'disconnected');
+        addSystemMessage('❌ Disconnected from server');
+        console.log('WebSocket closed');
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        addErrorMessage('Connection error occurred');
+      };
+    }
+
+    function disconnect() {
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+    }
+
+    function handleMessage(data) {
+      console.log('Handling message type:', data.type);
+
+      switch(data.type) {
+        case 'connection:status':
+          if (data.status === 'authenticated') {
+            addSystemMessage('✅ Authenticated successfully');
+          }
+          break;
+
+        case 'message:receive':
+          // Ignore our own messages
+          if (data.userId !== 'current-user') {
+            console.log('Received user message:', data.content);
+          }
+          break;
+
+        case 'message:stream':
+          handleStreamEvent(data);
+          break;
+
+        case 'message:ack':
+          console.log('Message acknowledged:', data.status);
+          if (data.status === 'error') {
+            addErrorMessage(`Message error: ${data.error}`);
+          }
+          break;
+
+        case 'message:error':
+          addErrorMessage(`Error: ${data.error || 'Unknown error'}`);
+          break;
+
+        default:
+          console.log('Unknown message type:', data.type);
+      }
+    }
+
+    function handleStreamEvent(data) {
+      if (!data.isComplete) {
+        // Streaming chunk
+        if (!currentAIMessage) {
+          currentAIMessage = createStreamingMessage();
+          streamStartTime = Date.now();
+          updateStreamingStatus('Streaming...');
+        }
+        const contentDiv = currentAIMessage.querySelector('.message-content');
+        contentDiv.textContent += data.content;
+        currentAIMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      } else {
+        // Stream complete
+        if (currentAIMessage) {
+          currentAIMessage.classList.remove('streaming');
+          currentAIMessage.classList.add('ai');
+
+          const indicator = currentAIMessage.querySelector('.streaming-indicator');
+          if (indicator) {
+            indicator.remove();
+          }
+
+          const elapsed = streamStartTime ? Date.now() - streamStartTime : 0;
+          const meta = currentAIMessage.querySelector('.message-meta');
+          meta.textContent = `AI • Completed in ${elapsed}ms`;
+
+          aiResponseCount++;
+          document.getElementById('aiResponseCount').textContent = aiResponseCount;
+          updateStreamingStatus('Idle');
+        }
+        currentAIMessage = null;
+        streamStartTime = null;
+      }
+    }
+
+    function sendMessage(content) {
+      if (!content) {
+        content = document.getElementById('messageInput').value;
+      }
+
+      if (!content || !content.trim()) {
+        return;
+      }
+
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        addErrorMessage('Not connected to server');
+        return;
+      }
+
+      const messageId = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+
+      const message = {
+        type: 'message:send',
+        conversationId: conversationId,
+        content: content.trim(),
+        messageId: messageId,
+        timestamp: new Date().toISOString()
+      };
+
+      console.log('Sending message:', message);
+      ws.send(JSON.stringify(message));
+
+      addUserMessage(content.trim());
+      document.getElementById('messageInput').value = '';
+      messageCount++;
+      document.getElementById('messageCount').textContent = messageCount;
+    }
+
+    function createStreamingMessage() {
+      const div = document.createElement('div');
+      div.className = 'message streaming';
+
+      const meta = document.createElement('div');
+      meta.className = 'message-meta';
+      meta.innerHTML = '<span class="streaming-indicator"></span>AI • Streaming...';
+
+      const content = document.createElement('div');
+      content.className = 'message-content';
+
+      div.appendChild(meta);
+      div.appendChild(content);
+      document.getElementById('messages').appendChild(div);
+      div.scrollIntoView({ behavior: 'smooth' });
+
+      return div;
+    }
+
+    function addUserMessage(content) {
+      const div = document.createElement('div');
+      div.className = 'message user';
+
+      const meta = document.createElement('div');
+      meta.className = 'message-meta';
+      meta.textContent = 'You • ' + new Date().toLocaleTimeString();
+
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'message-content';
+      contentDiv.textContent = content;
+
+      div.appendChild(meta);
+      div.appendChild(contentDiv);
+      document.getElementById('messages').appendChild(div);
+      div.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function addSystemMessage(content) {
+      const div = document.createElement('div');
+      div.className = 'message system';
+
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'message-content';
+      contentDiv.textContent = content;
+
+      div.appendChild(contentDiv);
+      document.getElementById('messages').appendChild(div);
+      div.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function addErrorMessage(content) {
+      const div = document.createElement('div');
+      div.className = 'message error';
+
+      const meta = document.createElement('div');
+      meta.className = 'message-meta';
+      meta.textContent = 'Error • ' + new Date().toLocaleTimeString();
+
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'message-content';
+      contentDiv.textContent = content;
+
+      div.appendChild(meta);
+      div.appendChild(contentDiv);
+      document.getElementById('messages').appendChild(div);
+      div.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function updateStatus(text, status) {
+      const statusEl = document.getElementById('status');
+      const symbols = {
+        connected: '<span class="status-connected">●</span> ',
+        disconnected: '<span class="status-disconnected">●</span> ',
+        connecting: '<span class="status-connecting">●</span> '
+      };
+      statusEl.innerHTML = (symbols[status] || '') + text;
+    }
+
+    function updateStreamingStatus(text) {
+      document.getElementById('streamingStatus').textContent = text;
+    }
+
+    function clearMessages() {
+      document.getElementById('messages').innerHTML = '';
+      addSystemMessage('Messages cleared');
+    }
+
+    // Test Scenarios
+    function testSimpleQuestion() {
+      sendMessage('What is TypeScript? Answer in one sentence.');
+    }
+
+    function testStreamingSpeed() {
+      sendMessage('Write a detailed explanation of WebSocket architecture with code examples. Make it at least 200 words.');
+    }
+
+    function testConversationContext() {
+      addSystemMessage('🧪 Testing conversation context...');
+      setTimeout(() => sendMessage('Remember the number 42'), 100);
+      setTimeout(() => sendMessage('What number did I just mention?'), 5000);
+    }
+
+    function testMultipleQuestions() {
+      addSystemMessage('🧪 Sending multiple questions...');
+      const questions = [
+        'What is 2+2?',
+        'What is the capital of France?',
+        'What color is the sky?'
+      ];
+      questions.forEach((q, i) => {
+        setTimeout(() => sendMessage(q), i * 2000);
+      });
+    }
+
+    function testErrorHandling() {
+      sendMessage('X'.repeat(15000)); // Very long message
+    }
+
+    function testRateLimiting() {
+      addSystemMessage('🧪 Testing rate limiting (sending 12 rapid messages)...');
+      for (let i = 1; i <= 12; i++) {
+        setTimeout(() => sendMessage(`Rate limit test message ${i}`), i * 100);
+      }
+    }
+
+    // Enter key sends message
+    document.getElementById('messageInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    // Focus input on load
+    document.getElementById('messageInput').focus();
+  </script>
+</body>
+</html>
