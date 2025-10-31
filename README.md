@@ -9,7 +9,7 @@
 
 ## Features
 
-### Current (MVP - Phase 2 Complete, Phase 3 Partial - VBT-39 Complete)
+### Current (MVP - Phase 2 Complete, Phase 3 Partial - VBT-39 & VBT-40 Complete)
 
 - ✅ **Backend Infrastructure**: Node.js/TypeScript with Express
 - ✅ **Frontend**: React + Vite + shadcn/ui
@@ -34,6 +34,15 @@
 - ✅ **WebSocket Client**: Frontend utility with event emitter and auto-reconnect (599 lines)
 - ✅ **Message Queue**: Queue messages during disconnect (FIFO, max 100)
 - ✅ **WebSocket Testing**: Comprehensive test plan + interactive test client
+- ✅ **Claude API Integration**: Full support for Anthropic's Claude API (@anthropic-ai/sdk v0.68.0)
+- ✅ **Multi-Model Support**: Claude 4.5 Sonnet, Haiku 4.5, Opus 4.1 with automatic model selection
+- ✅ **Streaming Responses**: Real-time AI response streaming with event-based callbacks
+- ✅ **Token Counting**: Input/output/cache token tracking with database storage
+- ✅ **Cost Tracking**: Per-model pricing, cost aggregation, reporting utilities
+- ✅ **Rate Limit Handling**: Automatic retry with exponential backoff for 429 errors
+- ✅ **Error Handling**: 9 error types, circuit breaker pattern, severity levels
+- ✅ **System Prompts**: 6 built-in presets (coding, writing, analysis, etc.) + custom prompts
+- ✅ **Integration Testing**: 9 comprehensive tests, all passing, WebSocket compatible
 - ⏳ **API Key Management**: Per-user encrypted storage for Claude/OpenAI keys (database ready, UI in Phase 7)
 - ⏳ **Conversation System**: Multi-user chat with history (database ready, remaining Phase 3)
 
@@ -57,10 +66,10 @@
 #### 3. Model & Configuration Management
 
 - Model switching mid-conversation
-- Custom system prompts per chat or globally
+- ✅ Custom system prompts per chat or globally (6 presets + custom)
 - Temperature and other parameter controls
 - Model comparison mode (run same prompt on different models)
-- Cost tracking per user/conversation
+- ✅ Cost tracking per user/conversation (completed)
 
 #### 4. Tool & Integration Features
 
@@ -189,6 +198,8 @@ npm run dev
 - **Database**: PostgreSQL 16 with Prisma ORM
 - **Cache**: Redis 7
 - **Authentication**: JWT with bcrypt
+- **WebSocket**: ws package (integrated with HTTP server)
+- **AI Integration**: @anthropic-ai/sdk v0.68.0 (Claude API)
 
 ### Frontend
 - **Framework**: React 19
@@ -212,6 +223,23 @@ vibebot/
 │   ├── middleware/        # Express middleware
 │   ├── models/           # (Future) Business logic
 │   ├── routes/           # API routes
+│   ├── services/         # Service layer
+│   │   ├── ai/           # AI service integrations
+│   │   │   ├── claude/   # Claude API integration
+│   │   │   │   ├── ClaudeService.ts
+│   │   │   │   ├── models.ts
+│   │   │   │   ├── streaming.ts
+│   │   │   │   ├── rate-limit.ts
+│   │   │   │   ├── error-handler.ts
+│   │   │   │   ├── circuit-breaker.ts
+│   │   │   │   └── system-prompts.ts
+│   │   │   ├── usage-tracking.ts
+│   │   │   └── cost-reporting.ts
+│   ├── websocket/        # WebSocket server
+│   │   ├── server.ts
+│   │   ├── connectionManager.ts
+│   │   ├── handlers/
+│   │   └── errorHandler.ts
 │   ├── utils/            # Utility functions
 │   └── server.ts         # Main server file
 ├── client/               # Frontend React application
@@ -219,7 +247,7 @@ vibebot/
 │   │   ├── components/   # React components
 │   │   ├── pages/        # Page components
 │   │   ├── hooks/        # Custom React hooks
-│   │   ├── lib/          # Utilities
+│   │   ├── lib/          # Utilities (incl. WebSocket client)
 │   │   └── types/        # TypeScript types
 │   └── public/           # Static assets
 ├── prisma/               # Database schema and migrations
@@ -227,9 +255,13 @@ vibebot/
 │   ├── migrations/       # Database migrations
 │   ├── seed.ts          # Seed data script
 │   └── DATABASE.md      # Database documentation
+├── docs/                 # Documentation
+│   ├── VBT-163-INTEGRATION-TEST-PLAN.md
+│   └── VBT-40-CLAUDE-API-COMPLETE.md
 ├── docker-compose.yml    # Docker Compose configuration
 ├── Dockerfile           # Backend Docker image
-└── DOCKER.md           # Docker deployment guide
+├── DOCKER.md            # Docker deployment guide
+└── development_tasks.md # Development roadmap
 ```
 
 ## Database Schema
@@ -238,9 +270,11 @@ See [prisma/DATABASE.md](./prisma/DATABASE.md) for complete database documentati
 
 **Core Models:**
 - **User**: Authentication and profile
+- **RefreshToken**: JWT refresh token management
 - **ApiKey**: Encrypted AI provider API keys (per user)
-- **Conversation**: Chat sessions
+- **Conversation**: Chat sessions with optional system prompts
 - **Message**: Individual messages (USER, ASSISTANT, SYSTEM)
+- **MessageMetadata**: Token usage and cost tracking (JSON fields for flexibility)
 
 ## Development
 
@@ -267,6 +301,17 @@ npm run lint          # Check code quality
 npm run format        # Format code
 ```
 
+**Testing (Backend):**
+```bash
+# Claude API Integration Tests
+npx tsx src/services/ai/claude/test-models.ts         # Test multi-model support
+npx tsx src/services/ai/claude/test-streaming.ts      # Test streaming responses
+npx tsx src/services/ai/claude/test-error-handling.ts # Test error handling
+npx tsx src/services/ai/claude/test-system-prompts.ts # Test system prompts
+npx tsx src/services/ai/test-cost-tracking.ts         # Test cost tracking
+npx tsx src/services/ai/claude/test-integration.ts    # Full integration test (9 scenarios)
+```
+
 ## Contributing
 
 This is currently a solo developer project. Contributions, issues, and feature requests are welcome!
@@ -285,7 +330,10 @@ See [development_tasks.md](./development_tasks.md) for the complete 8-week MVP d
 - ✅ **Phase 1 - Foundation** (Weeks 1-2): Project structure, database, Docker
 - ✅ **Phase 2 - Authentication** (Weeks 2-3): JWT, registration, login, auth context
 
-**Current Phase**: 🚧 **Phase 3 - Core Chat Backend** (VBT-39 Complete - 100%)
+**Current Phase**: 🚧 **Phase 3 - Core Chat Backend** (40% Complete - 2 of 5 stories done)
+
+**Completed Stories:**
+
 - ✅ **VBT-39: WebSocket Server for Real-time Communication** - COMPLETE (10/10 sub-tasks)
   - ✅ WebSocket Server Infrastructure (VBT-144) - ws package integrated with HTTP server
   - ✅ WebSocket Authentication (VBT-145) - JWT via query parameter
@@ -298,14 +346,26 @@ See [development_tasks.md](./development_tasks.md) for the complete 8-week MVP d
   - ✅ WebSocket Client Utility (VBT-152) - 599 lines, event emitter, auto-reconnect
   - ✅ End-to-End Testing (VBT-153) - Test plan + interactive test client
 
-**Remaining Phase 3 Tasks:**
-- ⏳ Claude API Integration
-- ⏳ AI Provider Abstraction Layer
-- ⏳ Conversation Management API
-- ⏳ Message Processing and Routing
+- ✅ **VBT-40: Claude API Integration** - COMPLETE (10/10 sub-tasks)
+  - ✅ Claude TypeScript SDK Setup (VBT-154) - @anthropic-ai/sdk v0.68.0
+  - ✅ Service Layer & Configuration (VBT-155) - ClaudeService singleton
+  - ✅ Multi-Model Support (VBT-156) - Sonnet 4.5, Haiku 4.5, Opus 4.1
+  - ✅ Streaming Response Handler (VBT-157) - Real-time callbacks, token tracking
+  - ✅ Token Counting & Usage Tracking (VBT-158) - Database storage, aggregation
+  - ✅ Rate Limit Detection (VBT-159) - 429 errors, automatic retry, exponential backoff
+  - ✅ Error Handling (VBT-160) - 9 types, circuit breaker, severity levels
+  - ✅ Cost Tracking System (VBT-161) - Per-model pricing, reporting utilities
+  - ✅ System Prompt Support (VBT-162) - 6 presets, validation, custom prompts
+  - ✅ Integration Testing (VBT-163) - 9 tests, WebSocket simulation, all passing
 
-**Last Completed**: VBT-153 (Test WebSocket End-to-End) - VBT-39 Story Complete!
-**Next Task**: Next Phase 3 story (Claude API or Conversation Management)
+**Remaining Phase 3 Tasks:**
+- ⏳ **VBT-42**: AI Provider Abstraction Layer
+- ⏳ **VBT-38**: Conversation Management API
+- ⏳ **VBT-43**: Message Processing and Routing API
+
+**Last Completed**: VBT-163 (Integration Testing with WebSocket Server) - VBT-40 Story Complete!
+
+**Next Task**: VBT-42 (AI Provider Abstraction Layer), VBT-38 (Conversation Management), or VBT-43 (Message Processing)
 
 ## Security
 

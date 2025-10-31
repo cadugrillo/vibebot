@@ -81,17 +81,17 @@ Completed:
   - ✅ VBT-152: Create WebSocket Client Utility (Frontend) (599 lines, event emitter, auto-reconnect, full TypeScript)
   - ✅ VBT-153: Test WebSocket End-to-End (comprehensive test plan + interactive test client)
 
-- 🚧 VBT-40: Claude API Integration (4/10 sub-tasks complete - 🚧 IN PROGRESS)
+- ✅ VBT-40: Claude API Integration (10/10 sub-tasks complete - ✅ DONE!)
   - ✅ VBT-154: Install and Setup Claude TypeScript SDK (@anthropic-ai/sdk v0.68.0)
   - ✅ VBT-155: Create Claude Service Layer (ClaudeService singleton, config, types)
   - ✅ VBT-156: Multi-Model Support (Sonnet 4.5, Haiku 4.5, Opus 4.1, cost calculation)
   - ✅ VBT-157: Streaming Response Handler (StreamHandler class, real-time deltas, token tracking)
-  - ⏳ VBT-158: Add Token Counting and Usage Tracking
-  - ⏳ VBT-159: Implement Rate Limit Detection and Handling
-  - ⏳ VBT-160: Add Comprehensive Error Handling and Retry Logic
-  - ⏳ VBT-161: Implement Cost Tracking System
-  - ⏳ VBT-162: Add System Prompt Support
-  - ⏳ VBT-163: Integration Testing with WebSocket Server
+  - ✅ VBT-158: Token Counting and Usage Tracking (MessageMetadata storage, aggregation)
+  - ✅ VBT-159: Rate Limit Detection and Handling (429 errors, exponential backoff, retry logic)
+  - ✅ VBT-160: Comprehensive Error Handling (9 error types, circuit breaker, severity levels)
+  - ✅ VBT-161: Cost Tracking System (per-model pricing, aggregation, reporting utilities)
+  - ✅ VBT-162: System Prompt Support (6 presets, validation, custom prompts)
+  - ✅ VBT-163: Integration Testing with WebSocket Server (9 tests, all passing, $0.0031 total cost)
 
 Remaining Phase 3 Tasks:
 - ⏳ AI provider abstraction layer
@@ -104,14 +104,15 @@ See `development_tasks.md` for the complete development sequence.
 
 ## 📍 Where to Pick Up
 
-**Last Completed**: VBT-157 - Implement Streaming Response Handler (VBT-40 In Progress!)
+**Last Completed**: VBT-163 - Integration Testing with WebSocket Server (VBT-40 Complete! ✅)
 
-**Next Task**: Ready for next Phase 3 story (Claude API Integration, Conversation Management, or other Phase 3 tasks)
+**Next Task**: Ready for next Phase 3 story (AI Provider Abstraction, Conversation Management, or Message Processing)
 
 **To Resume Work:**
 1. Check Jira for the next Phase 3 story
 2. VBT-39 (WebSocket Server) is complete with all 10 sub-tasks done
-3. Remaining Phase 3 work: Claude API integration, AI provider abstraction, conversation management
+3. VBT-40 (Claude API Integration) is complete with all 10 sub-tasks done
+4. Remaining Phase 3 work: AI provider abstraction, conversation management, message processing
 
 **Current Project State:**
 - ✅ **Phase 1 (Foundation)** - COMPLETE
@@ -132,7 +133,7 @@ See `development_tasks.md` for the complete development sequence.
   - Automatic Token Refresh
   - Security: HTTP-only cookies, bcrypt, rate limiting
 
-- 🚧 **Phase 3 (Core Chat Backend)** - IN PROGRESS (VBT-39 complete, remaining tasks pending)
+- 🚧 **Phase 3 (Core Chat Backend)** - IN PROGRESS (VBT-39 and VBT-40 complete!)
   - ✅ **WebSocket Server (VBT-39)** - COMPLETE (10/10 sub-tasks)
     - ✅ WebSocket server setup and infrastructure (ws package integrated with HTTP server)
     - ✅ WebSocket authentication with JWT (query parameter token verification)
@@ -144,7 +145,17 @@ See `development_tasks.md` for the complete development sequence.
     - ✅ Cleanup on disconnect (6-step comprehensive cleanup)
     - ✅ WebSocket client utility (frontend event emitter with auto-reconnect)
     - ✅ End-to-end testing (comprehensive test plan + interactive test client)
-  - ⏳ Claude API integration (upcoming)
+  - ✅ **Claude API Integration (VBT-40)** - COMPLETE (10/10 sub-tasks)
+    - ✅ Claude TypeScript SDK setup (@anthropic-ai/sdk v0.68.0)
+    - ✅ ClaudeService singleton with configuration management
+    - ✅ Multi-model support (Sonnet 4.5, Haiku 4.5, Opus 4.1)
+    - ✅ Streaming response handler with real-time callbacks
+    - ✅ Token counting and usage tracking (database storage)
+    - ✅ Rate limit detection and automatic retry (exponential backoff)
+    - ✅ Comprehensive error handling (9 types, circuit breaker, severity levels)
+    - ✅ Cost tracking system (per-model pricing, aggregation, reporting)
+    - ✅ System prompt support (6 presets, validation, custom prompts)
+    - ✅ Integration testing (9 tests, WebSocket simulation, all passing)
   - ⏳ AI provider abstraction layer (upcoming)
   - ⏳ Conversation management API (upcoming)
   - ⏳ Message processing and routing (upcoming)
