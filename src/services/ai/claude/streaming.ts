@@ -27,6 +27,9 @@ export class StreamHandler {
   private outputTokens: number = 0;
   private stopReason: string = '';
   private model: string = '';
+  private streamStarted: boolean = false;
+  private streamCompleted: boolean = false;
+  private lastEventTime: number = Date.now();
 
   constructor(private readonly messageId: string, private readonly callback: StreamCallback) {}
 
@@ -37,6 +40,8 @@ export class StreamHandler {
     console.log(`Stream started for message: ${this.messageId}`);
     this.model = event.message.model;
     this.inputTokens = event.message.usage.input_tokens;
+    this.streamStarted = true;
+    this.lastEventTime = Date.now();
 
     // Emit start event
     this.callback({
@@ -59,6 +64,7 @@ export class StreamHandler {
     if (event.delta.type === 'text_delta') {
       const chunk = event.delta.text;
       this.contentBuffer += chunk;
+      this.lastEventTime = Date.now();
 
       // Emit delta event with chunk
       this.callback({
@@ -73,7 +79,7 @@ export class StreamHandler {
   /**
    * Handle content_block_stop event
    */
-  handleContentBlockStop(event: Anthropic.ContentBlockStopEvent): void {
+  handleContentBlockStop(_event: Anthropic.ContentBlockStopEvent): void {
     console.log('Content block stopped');
   }
 
@@ -97,6 +103,9 @@ export class StreamHandler {
     console.log(`Stream completed for message: ${this.messageId}`);
     console.log(`Total content length: ${this.contentBuffer.length} characters`);
     console.log(`Token usage: ${this.inputTokens} input, ${this.outputTokens} output`);
+
+    this.streamCompleted = true;
+    this.lastEventTime = Date.now();
 
     // Emit complete event
     this.callback({
@@ -172,6 +181,34 @@ export class StreamHandler {
       totalTokens: this.inputTokens + this.outputTokens,
     };
   }
+
+  /**
+   * Check if stream was interrupted
+   * VBT-160: Stream interruption detection
+   */
+  isStreamInterrupted(): boolean {
+    return this.streamStarted && !this.streamCompleted;
+  }
+
+  /**
+   * Get stream status information
+   * VBT-160: Stream status for debugging
+   */
+  getStreamStatus(): {
+    started: boolean;
+    completed: boolean;
+    interrupted: boolean;
+    contentLength: number;
+    lastEventTime: Date;
+  } {
+    return {
+      started: this.streamStarted,
+      completed: this.streamCompleted,
+      interrupted: this.isStreamInterrupted(),
+      contentLength: this.contentBuffer.length,
+      lastEventTime: new Date(this.lastEventTime),
+    };
+  }
 }
 
 /**
@@ -179,7 +216,7 @@ export class StreamHandler {
  * Main function to handle streaming from Claude API
  */
 export async function processStream(
-  stream: Anthropic.Stream<Anthropic.MessageStreamEvent>,
+  stream: any,
   messageId: string,
   callback: StreamCallback
 ): Promise<ClaudeResponse> {
@@ -217,15 +254,71 @@ export async function processStream(
       }
     }
 
+    // VBT-160: Check if stream was interrupted
+    if (handler.isStreamInterrupted()) {
+      const status = handler.getStreamStatus();
+      console.warn('⚠️ Stream was interrupted before completion');
+      console.warn(`   Stream status:`, status);
+      console.warn(`   Partial content length: ${status.contentLength} characters`);
+
+      handler.handleError(new Error('Stream interrupted before completion'));
+
+      throw new ClaudeServiceError(
+        ClaudeErrorType.STREAM_INTERRUPTED,
+        `Stream was interrupted. Received ${status.contentLength} characters before interruption.`,
+        undefined,
+        true, // Retryable
+        undefined,
+        undefined,
+        {
+          messageId,
+          partialContent: handler.getContent(),
+          contentLength: status.contentLength,
+          streamStatus: status,
+        }
+      );
+    }
+
     return handler.getResponse();
   } catch (error) {
+    // VBT-160: Enhanced error handling with categorization
+    const streamStatus = handler.getStreamStatus();
+
     handler.handleError(error instanceof Error ? error : new Error('Stream processing error'));
 
+    // Check if it's already a ClaudeServiceError
+    if (error instanceof ClaudeServiceError) {
+      throw error;
+    }
+
+    // Categorize error type based on error message
+    let errorType = ClaudeErrorType.INTERNAL;
+    let retryable = true;
+
+    if (error instanceof Error) {
+      const message = error.message.toLowerCase();
+
+      if (message.includes('network') || message.includes('connection')) {
+        errorType = ClaudeErrorType.NETWORK;
+      } else if (message.includes('timeout')) {
+        errorType = ClaudeErrorType.TIMEOUT;
+      } else if (message.includes('interrupted') || message.includes('aborted')) {
+        errorType = ClaudeErrorType.STREAM_INTERRUPTED;
+      }
+    }
+
     throw new ClaudeServiceError(
-      ClaudeErrorType.INTERNAL,
+      errorType,
       `Stream processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       undefined,
-      true
+      retryable,
+      undefined,
+      undefined,
+      {
+        messageId,
+        partialContent: handler.getContent(),
+        streamStatus,
+      }
     );
   }
 }

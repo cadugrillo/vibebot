@@ -73,8 +73,8 @@ async function testMultiModelSupport(): Promise<void> {
     // Valid models
     const validModels = [
       ClaudeModel.SONNET_4_5,
-      ClaudeModel.OPUS_4,
-      ClaudeModel.HAIKU_4,
+      ClaudeModel.OPUS_4_1,
+      ClaudeModel.HAIKU_4_5,
     ];
 
     console.log('Testing valid models:');
@@ -96,9 +96,9 @@ async function testMultiModelSupport(): Promise<void> {
     console.log('-'.repeat(60));
 
     const testModels = [
-      ClaudeModel.HAIKU_4,
+      ClaudeModel.HAIKU_4_5,
       ClaudeModel.SONNET_4_5,
-      ClaudeModel.OPUS_4,
+      ClaudeModel.OPUS_4_1,
     ];
 
     for (const model of testModels) {
@@ -121,7 +121,7 @@ async function testMultiModelSupport(): Promise<void> {
     const inputTokens = 10000;
     const outputTokens = 5000;
 
-    [ClaudeModel.HAIKU_4, ClaudeModel.SONNET_4_5, ClaudeModel.OPUS_4].forEach((model) => {
+    [ClaudeModel.HAIKU_4_5, ClaudeModel.SONNET_4_5, ClaudeModel.OPUS_4_1].forEach((model) => {
       const cost = calculateCost(model, inputTokens, outputTokens);
       const displayName = getModelDisplayName(model);
       if (cost !== null) {
@@ -135,7 +135,7 @@ async function testMultiModelSupport(): Promise<void> {
     console.log('-'.repeat(60));
 
     // Test with specific model
-    const selectedModel1 = claudeService.selectModel(ClaudeModel.HAIKU_4);
+    const selectedModel1 = claudeService.selectModel(ClaudeModel.HAIKU_4_5);
     console.log(`✅ Selected model (explicit): ${getModelDisplayName(selectedModel1)}`);
 
     // Test with default (no model specified)

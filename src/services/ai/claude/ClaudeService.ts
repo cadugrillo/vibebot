@@ -9,7 +9,6 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getClaudeConfig, ClaudeConfig } from './config';
 import { ClaudeServiceError, ClaudeErrorType } from './types';
 import {
-  ClaudeModel,
   ModelConfig,
   getModelConfig,
   isValidModel,
@@ -22,10 +21,11 @@ import {
   StreamParams,
   StreamCallback,
   ClaudeResponse,
-  RateLimitInfo,
 } from './types';
 import { processStream } from './streaming';
 import { RateLimitHandler, formatRateLimitInfo, logRateLimitEvent } from './rate-limit';
+import { CircuitBreakerManager } from './circuit-breaker'; // VBT-160
+import { getErrorLogger } from './error-logger'; // VBT-160
 
 /**
  * ClaudeService class
@@ -36,6 +36,8 @@ export class ClaudeService {
   private config: ClaudeConfig;
   private initialized: boolean = false;
   private rateLimitHandler: RateLimitHandler; // VBT-159: Rate limit handling
+  private circuitBreaker: CircuitBreakerManager; // VBT-160: Circuit breaker
+  private errorLogger = getErrorLogger(); // VBT-160: Error logging
 
   constructor() {
     // Load configuration from environment
@@ -55,6 +57,9 @@ export class ClaudeService {
       maxDelay: 32000,
       jitterFactor: 0.1,
     });
+
+    // Initialize circuit breaker manager (VBT-160)
+    this.circuitBreaker = new CircuitBreakerManager();
 
     this.initialized = true;
     console.log('ClaudeService initialized successfully');
@@ -261,6 +266,51 @@ export class ClaudeService {
   }
 
   /**
+   * Categorize Anthropic API errors
+   * VBT-160: Enhanced error categorization
+   * @param error - Anthropic API error
+   * @returns Appropriate Claude error type
+   */
+  private categorizeAPIError(error: any): ClaudeErrorType {
+    const status = error.status;
+
+    if (!status) {
+      return ClaudeErrorType.UNKNOWN;
+    }
+
+    // 4xx client errors
+    if (status >= 400 && status < 500) {
+      switch (status) {
+        case 401:
+        case 403:
+          return ClaudeErrorType.AUTHENTICATION;
+        case 429:
+          return ClaudeErrorType.RATE_LIMIT;
+        case 402:
+          return ClaudeErrorType.BILLING;
+        case 400:
+          return ClaudeErrorType.INVALID_REQUEST;
+        default:
+          return ClaudeErrorType.INVALID_REQUEST;
+      }
+    }
+
+    // 5xx server errors
+    if (status >= 500 && status < 600) {
+      switch (status) {
+        case 503:
+          return ClaudeErrorType.OVERLOADED;
+        case 504:
+          return ClaudeErrorType.TIMEOUT;
+        default:
+          return ClaudeErrorType.INTERNAL;
+      }
+    }
+
+    return ClaudeErrorType.UNKNOWN;
+  }
+
+  /**
    * Stream a response from Claude API
    * VBT-157: Streaming response handler
    * @param params - Streaming parameters
@@ -326,21 +376,33 @@ export class ClaudeService {
     console.log(`Max tokens: ${requestParams.max_tokens}`);
     console.log(`System prompt: ${systemPrompt ? 'Yes' : 'No'}`);
 
-    // VBT-159: Wrap API call with rate limit handler for automatic retries
+    // VBT-160: Wrap with circuit breaker for fault tolerance
     try {
-      const response = await this.rateLimitHandler.executeWithRetry(
+      const response = await this.circuitBreaker.execute(
+        `claude-stream-${selectedModel}`,
         async () => {
-          // Create streaming request
-          const stream = await this.client.messages.create(requestParams);
+          // VBT-159: Wrap API call with rate limit handler for automatic retries
+          return await this.rateLimitHandler.executeWithRetry(
+            async () => {
+              // Create streaming request
+              const stream = await this.client.messages.create(requestParams);
 
-          // Process stream with handler
-          return await processStream(
-            stream as Anthropic.Stream<Anthropic.MessageStreamEvent>,
-            messageId || `msg-${Date.now()}`,
-            callback
+              // Process stream with handler
+              return await processStream(
+                stream as any,
+                messageId || `msg-${Date.now()}`,
+                callback
+              );
+            },
+            `Stream response for model ${selectedModel}`
           );
         },
-        `Stream response for model ${selectedModel}`
+        {
+          failureThreshold: 5,
+          successThreshold: 2,
+          timeout: 60000,
+          monitoringPeriod: 120000,
+        }
       );
 
       console.log(`✅ Stream completed successfully`);
@@ -355,12 +417,15 @@ export class ClaudeService {
     } catch (error) {
       console.error('❌ Stream failed:', error);
 
+      // VBT-160: Enhanced error handling with logging
+      let claudeError: ClaudeServiceError;
+
       // VBT-159: Handle rate limit errors with detailed info
       if (error instanceof Anthropic.RateLimitError) {
         const rateLimitInfo = this.rateLimitHandler.parseRateLimitError(error);
         logRateLimitEvent(rateLimitInfo, `Stream response for model ${selectedModel}`);
 
-        throw new ClaudeServiceError(
+        claudeError = new ClaudeServiceError(
           ClaudeErrorType.RATE_LIMIT,
           formatRateLimitInfo(rateLimitInfo),
           429,
@@ -368,38 +433,75 @@ export class ClaudeService {
           rateLimitInfo
         );
       }
-
-      // Handle other specific Anthropic errors
-      if (error instanceof Anthropic.AuthenticationError) {
-        throw new ClaudeServiceError(
+      // Handle authentication errors
+      else if (error instanceof Anthropic.AuthenticationError) {
+        claudeError = new ClaudeServiceError(
           ClaudeErrorType.AUTHENTICATION,
           'Invalid API key',
           401,
-          false
+          false,
+          undefined,
+          undefined,
+          { model: selectedModel, userId: params.userId }
         );
       }
+      // Handle API errors (5xx, billing, etc.)
+      else if (error instanceof Anthropic.APIError) {
+        const errorType = this.categorizeAPIError(error);
+        const isRetryable = error.status ? error.status >= 500 : false;
 
-      if (error instanceof Anthropic.APIError) {
-        throw new ClaudeServiceError(
-          ClaudeErrorType.INTERNAL,
-          `Claude API error: ${error.message}`,
-          error.status || 500,
-          false
+        claudeError = new ClaudeServiceError(
+          errorType,
+          error.message || 'API error occurred',
+          error.status,
+          isRetryable,
+          undefined,
+          undefined,
+          {
+            model: selectedModel,
+            userId: params.userId,
+            conversationId: params.conversationId,
+          }
         );
       }
-
+      // Handle circuit breaker errors
+      else if (error instanceof Error && error.message.includes('Circuit breaker')) {
+        claudeError = new ClaudeServiceError(
+          ClaudeErrorType.OVERLOADED,
+          error.message,
+          503,
+          false,
+          undefined,
+          undefined,
+          { model: selectedModel }
+        );
+      }
       // Re-throw ClaudeServiceError (including rate limit errors from handler)
-      if (error instanceof ClaudeServiceError) {
-        throw error;
+      else if (error instanceof ClaudeServiceError) {
+        claudeError = error;
+      }
+      // Generic error
+      else {
+        claudeError = new ClaudeServiceError(
+          ClaudeErrorType.UNKNOWN,
+          error instanceof Error ? error.message : 'Stream failed',
+          500,
+          true,
+          undefined,
+          undefined,
+          { model: selectedModel, userId: params.userId }
+        );
       }
 
-      // Generic error
-      throw new ClaudeServiceError(
-        ClaudeErrorType.INTERNAL,
-        error instanceof Error ? error.message : 'Stream failed',
-        500,
-        true
-      );
+      // VBT-160: Log the error
+      this.errorLogger.logError(claudeError, {
+        operation: 'streamResponse',
+        model: selectedModel,
+        userId: params.userId,
+        conversationId: params.conversationId,
+      });
+
+      throw claudeError;
     }
   }
 }

@@ -27,7 +27,7 @@ async function testStreaming(): Promise<void> {
     console.log('-'.repeat(60));
     console.log('Prompt: "Write a haiku about TypeScript"\n');
 
-    const { callback: simpleCallback, getContent: getSimpleContent } = createTextCallback();
+    const { callback: simpleCallback } = createTextCallback();
 
     const response1 = await claudeService.streamResponse(
       {
