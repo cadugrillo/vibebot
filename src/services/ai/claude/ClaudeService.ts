@@ -22,8 +22,10 @@ import {
   StreamParams,
   StreamCallback,
   ClaudeResponse,
+  RateLimitInfo,
 } from './types';
 import { processStream } from './streaming';
+import { RateLimitHandler, formatRateLimitInfo, logRateLimitEvent } from './rate-limit';
 
 /**
  * ClaudeService class
@@ -33,6 +35,7 @@ export class ClaudeService {
   private client: Anthropic;
   private config: ClaudeConfig;
   private initialized: boolean = false;
+  private rateLimitHandler: RateLimitHandler; // VBT-159: Rate limit handling
 
   constructor() {
     // Load configuration from environment
@@ -43,6 +46,14 @@ export class ClaudeService {
       apiKey: this.config.apiKey,
       maxRetries: this.config.maxRetries,
       timeout: this.config.timeout,
+    });
+
+    // Initialize rate limit handler (VBT-159)
+    this.rateLimitHandler = new RateLimitHandler({
+      maxRetries: 3,
+      baseDelay: 1000,
+      maxDelay: 32000,
+      jitterFactor: 0.1,
     });
 
     this.initialized = true;
@@ -315,15 +326,21 @@ export class ClaudeService {
     console.log(`Max tokens: ${requestParams.max_tokens}`);
     console.log(`System prompt: ${systemPrompt ? 'Yes' : 'No'}`);
 
+    // VBT-159: Wrap API call with rate limit handler for automatic retries
     try {
-      // Create streaming request
-      const stream = await this.client.messages.create(requestParams);
+      const response = await this.rateLimitHandler.executeWithRetry(
+        async () => {
+          // Create streaming request
+          const stream = await this.client.messages.create(requestParams);
 
-      // Process stream with handler
-      const response = await processStream(
-        stream as Anthropic.Stream<Anthropic.MessageStreamEvent>,
-        messageId || `msg-${Date.now()}`,
-        callback
+          // Process stream with handler
+          return await processStream(
+            stream as Anthropic.Stream<Anthropic.MessageStreamEvent>,
+            messageId || `msg-${Date.now()}`,
+            callback
+          );
+        },
+        `Stream response for model ${selectedModel}`
       );
 
       console.log(`✅ Stream completed successfully`);
@@ -331,26 +348,34 @@ export class ClaudeService {
       console.log(`   Cost: $${response.cost.totalCost.toFixed(4)}`);
       console.log(`   Content length: ${response.content.length} characters`);
 
+      // Add rate limit info (not rate limited if we got here successfully)
+      response.rateLimitInfo = { isRateLimited: false };
+
       return response;
     } catch (error) {
       console.error('❌ Stream failed:', error);
 
-      // Handle specific Anthropic errors
+      // VBT-159: Handle rate limit errors with detailed info
+      if (error instanceof Anthropic.RateLimitError) {
+        const rateLimitInfo = this.rateLimitHandler.parseRateLimitError(error);
+        logRateLimitEvent(rateLimitInfo, `Stream response for model ${selectedModel}`);
+
+        throw new ClaudeServiceError(
+          ClaudeErrorType.RATE_LIMIT,
+          formatRateLimitInfo(rateLimitInfo),
+          429,
+          false, // Not retryable after max retries exceeded
+          rateLimitInfo
+        );
+      }
+
+      // Handle other specific Anthropic errors
       if (error instanceof Anthropic.AuthenticationError) {
         throw new ClaudeServiceError(
           ClaudeErrorType.AUTHENTICATION,
           'Invalid API key',
           401,
           false
-        );
-      }
-
-      if (error instanceof Anthropic.RateLimitError) {
-        throw new ClaudeServiceError(
-          ClaudeErrorType.RATE_LIMIT,
-          'Rate limit exceeded',
-          429,
-          true
         );
       }
 
@@ -361,6 +386,11 @@ export class ClaudeService {
           error.status || 500,
           false
         );
+      }
+
+      // Re-throw ClaudeServiceError (including rate limit errors from handler)
+      if (error instanceof ClaudeServiceError) {
+        throw error;
       }
 
       // Generic error

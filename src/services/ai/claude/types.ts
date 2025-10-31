@@ -70,6 +70,19 @@ export interface StreamEvent {
 }
 
 /**
+ * Rate limit information (VBT-159)
+ */
+export interface RateLimitInfo {
+  isRateLimited: boolean;
+  retryAfter?: number;
+  limit?: number;
+  remaining?: number;
+  reset?: Date;
+  requestsPerMinute?: number;
+  tokensPerMinute?: number;
+}
+
+/**
  * Complete response from Claude API
  */
 export interface ClaudeResponse {
@@ -80,6 +93,7 @@ export interface ClaudeResponse {
   model: string;
   stopReason: string;
   finishReason?: string;
+  rateLimitInfo?: RateLimitInfo; // VBT-159: Rate limit information
 }
 
 /**
@@ -110,7 +124,8 @@ export class ClaudeServiceError extends Error {
     public type: ClaudeErrorType,
     message: string,
     public statusCode?: number,
-    public retryable: boolean = false
+    public retryable: boolean = false,
+    public rateLimitInfo?: RateLimitInfo // VBT-159: Optional rate limit info
   ) {
     super(message);
     this.name = 'ClaudeServiceError';
