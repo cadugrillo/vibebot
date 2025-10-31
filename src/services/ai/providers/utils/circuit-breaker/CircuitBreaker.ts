@@ -1,56 +1,24 @@
 /**
- * Circuit Breaker Pattern
- * VBT-160: Add circuit breaker for repeated failures
- *
+ * Circuit Breaker
  * Prevents cascading failures by stopping requests to a failing service
- * and allowing time for recovery.
  *
- * @deprecated This file is deprecated and maintained for backward compatibility only.
- * Use the new provider-agnostic CircuitBreakerManager from '@/services/ai/providers/utils/circuit-breaker/CircuitBreakerManager' instead.
- * See MIGRATION.md for migration guide.
+ * The circuit breaker has three states:
+ * - CLOSED: Normal operation, all requests allowed
+ * - OPEN: Too many failures, all requests blocked
+ * - HALF_OPEN: Testing recovery, limited requests allowed
  */
 
-/**
- * Circuit breaker states
- */
-export enum CircuitState {
-  CLOSED = 'CLOSED',     // Normal operation, requests allowed
-  OPEN = 'OPEN',         // Too many failures, requests blocked
-  HALF_OPEN = 'HALF_OPEN' // Testing if service recovered
-}
-
-/**
- * Circuit breaker configuration
- */
-export interface CircuitBreakerConfig {
-  failureThreshold: number;    // Number of failures before opening circuit
-  successThreshold: number;    // Number of successes to close circuit from half-open
-  timeout: number;             // Time in ms before trying again (half-open)
-  monitoringPeriod: number;    // Time window in ms for failure counting
-}
-
-/**
- * Circuit breaker statistics
- */
-export interface CircuitBreakerStats {
-  state: CircuitState;
-  failures: number;
-  successes: number;
-  consecutiveFailures: number;
-  consecutiveSuccesses: number;
-  lastFailureTime?: Date;
-  lastSuccessTime?: Date;
-  nextAttemptTime?: Date;
-  totalRequests: number;
-  totalFailures: number;
-  totalSuccesses: number;
-}
+import { ProviderError, ProviderErrorType } from '../../errors';
+import {
+  CircuitState,
+  CircuitBreakerConfig,
+  CircuitBreakerStats,
+  DEFAULT_CIRCUIT_BREAKER_CONFIG,
+} from './CircuitBreakerConfig';
 
 /**
  * Circuit Breaker class
  * Implements the circuit breaker pattern to prevent repeated failures
- *
- * @deprecated Use CircuitBreakerManager from '@/services/ai/providers/utils/circuit-breaker/CircuitBreakerManager' instead
  */
 export class CircuitBreaker {
   private state: CircuitState = CircuitState.CLOSED;
@@ -66,23 +34,25 @@ export class CircuitBreaker {
   private totalSuccesses: number = 0;
   private failureTimestamps: number[] = [];
 
-  private config: CircuitBreakerConfig = {
-    failureThreshold: 5,        // Open after 5 failures
-    successThreshold: 2,        // Close after 2 successes in half-open
-    timeout: 60000,             // Wait 60 seconds before retry
-    monitoringPeriod: 120000,   // Count failures in 2-minute window
-  };
+  private config: CircuitBreakerConfig;
 
+  /**
+   * Create a new circuit breaker
+   *
+   * @param name - Unique name for this circuit breaker (for logging)
+   * @param config - Circuit breaker configuration (optional)
+   */
   constructor(
     private readonly name: string,
     config?: Partial<CircuitBreakerConfig>
   ) {
-    console.warn(
-      '⚠️ CircuitBreaker is deprecated. Use CircuitBreakerManager from @/services/ai/providers/utils/circuit-breaker/CircuitBreakerManager instead. See MIGRATION.md for details.'
-    );
-    if (config) {
-      this.config = { ...this.config, ...config };
-    }
+    this.config = { ...DEFAULT_CIRCUIT_BREAKER_CONFIG, ...config };
+
+    console.log(`CircuitBreaker "${this.name}" initialized`);
+    console.log(`  Failure threshold: ${this.config.failureThreshold}`);
+    console.log(`  Success threshold: ${this.config.successThreshold}`);
+    console.log(`  Timeout: ${this.config.timeout}ms`);
+    console.log(`  Monitoring period: ${this.config.monitoringPeriod}ms`);
   }
 
   /**
@@ -90,7 +60,7 @@ export class CircuitBreaker {
    *
    * @param fn - Function to execute
    * @returns Result of the function
-   * @throws Error if circuit is open
+   * @throws ProviderError if circuit is open
    */
   public async execute<T>(fn: () => Promise<T>): Promise<T> {
     // Check if circuit is open
@@ -103,9 +73,20 @@ export class CircuitBreaker {
           ? Math.ceil((this.nextAttemptTime.getTime() - Date.now()) / 1000)
           : Math.ceil(this.config.timeout / 1000);
 
-        throw new Error(
+        throw new ProviderError(
+          ProviderErrorType.OVERLOADED,
           `Circuit breaker "${this.name}" is OPEN. ` +
-          `Too many failures detected. Please try again in ${waitTime} seconds.`
+            `Too many failures detected. Please try again in ${waitTime} seconds.`,
+          {
+            retryable: false,
+            statusCode: 503,
+            context: {
+              circuitBreaker: this.name,
+              state: this.state,
+              consecutiveFailures: this.consecutiveFailures,
+              nextAttemptTime: this.nextAttemptTime,
+            },
+          }
         );
       }
     }
@@ -134,7 +115,9 @@ export class CircuitBreaker {
 
     if (this.state === CircuitState.HALF_OPEN) {
       if (this.consecutiveSuccesses >= this.config.successThreshold) {
-        console.log(`✅ Circuit breaker "${this.name}": Closing circuit (service recovered)`);
+        console.log(
+          `✅ Circuit breaker "${this.name}": Closing circuit (service recovered)`
+        );
         this.close();
       }
     }
@@ -259,81 +242,27 @@ export class CircuitBreaker {
 
     return false;
   }
-}
 
-/**
- * Circuit Breaker Manager
- * Manages multiple circuit breakers for different operations
- *
- * @deprecated Use CircuitBreakerManager from '@/services/ai/providers/utils/circuit-breaker/CircuitBreakerManager' instead
- */
-export class CircuitBreakerManager {
-  private breakers: Map<string, CircuitBreaker> = new Map();
-
-  constructor() {
-    console.warn(
-      '⚠️ CircuitBreakerManager (claude) is deprecated. Use the new provider-agnostic CircuitBreakerManager from @/services/ai/providers/utils/circuit-breaker/CircuitBreakerManager instead. See MIGRATION.md for details.'
-    );
+  /**
+   * Get circuit breaker name
+   */
+  public getName(): string {
+    return this.name;
   }
 
   /**
-   * Get or create a circuit breaker for an operation
-   *
-   * @param name - Unique name for the circuit breaker
-   * @param config - Optional configuration
-   * @returns Circuit breaker instance
+   * Get configuration
    */
-  public getBreaker(
-    name: string,
-    config?: Partial<CircuitBreakerConfig>
-  ): CircuitBreaker {
-    if (!this.breakers.has(name)) {
-      this.breakers.set(name, new CircuitBreaker(name, config));
-    }
-    return this.breakers.get(name)!;
+  public getConfig(): CircuitBreakerConfig {
+    return { ...this.config };
   }
 
   /**
-   * Execute a function with circuit breaker protection
-   *
-   * @param name - Circuit breaker name
-   * @param fn - Function to execute
-   * @param config - Optional configuration for new circuit breakers
-   * @returns Result of the function
+   * Update configuration
+   * Note: Does not affect current state, only future behavior
    */
-  public async execute<T>(
-    name: string,
-    fn: () => Promise<T>,
-    config?: Partial<CircuitBreakerConfig>
-  ): Promise<T> {
-    const breaker = this.getBreaker(name, config);
-    return await breaker.execute(fn);
-  }
-
-  /**
-   * Get statistics for all circuit breakers
-   */
-  public getAllStats(): Record<string, CircuitBreakerStats> {
-    const stats: Record<string, CircuitBreakerStats> = {};
-    for (const [name, breaker] of this.breakers.entries()) {
-      stats[name] = breaker.getStats();
-    }
-    return stats;
-  }
-
-  /**
-   * Reset all circuit breakers
-   */
-  public resetAll(): void {
-    for (const breaker of this.breakers.values()) {
-      breaker.reset();
-    }
-  }
-
-  /**
-   * Get total number of circuit breakers
-   */
-  public getCount(): number {
-    return this.breakers.size;
+  public updateConfig(config: Partial<CircuitBreakerConfig>): void {
+    this.config = { ...this.config, ...config };
+    console.log(`Circuit breaker "${this.name}" configuration updated`);
   }
 }

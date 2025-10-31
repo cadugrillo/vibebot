@@ -1,4 +1,21 @@
-# Claude Service
+# Claude Service (DEPRECATED)
+
+> ⚠️ **DEPRECATION NOTICE**: This directory contains the legacy Claude implementation and is **deprecated as of VBT-42**.
+>
+> **Use the new provider-agnostic architecture instead:**
+> - 📁 New location: `src/services/ai/providers/`
+> - 📘 Migration guide: [MIGRATION.md](./MIGRATION.md)
+> - 📚 Documentation: [Provider README](../providers/README.md)
+>
+> **Key Benefits of New Architecture:**
+> - ✅ Provider-agnostic (easy to add OpenAI, etc.)
+> - ✅ Better utilities (RateLimitManager, CircuitBreaker, ErrorLogger, SystemPromptManager)
+> - ✅ Improved error handling and streaming
+> - ✅ Unified IAIProvider interface
+>
+> **This directory is maintained for backward compatibility only.**
+
+---
 
 AI service integration for Anthropic's Claude API.
 

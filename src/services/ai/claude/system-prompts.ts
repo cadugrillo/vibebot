@@ -3,6 +3,10 @@
  * VBT-162: Add System Prompt Support
  *
  * Provides system prompt templates, validation, and management
+ *
+ * @deprecated This file is deprecated and maintained for backward compatibility only.
+ * Use the new provider-agnostic SystemPromptManager from '@/services/ai/providers/utils/system-prompts/SystemPromptManager' instead.
+ * See MIGRATION.md for migration guide.
  */
 
 import { ClaudeServiceError, ClaudeErrorType } from './types';

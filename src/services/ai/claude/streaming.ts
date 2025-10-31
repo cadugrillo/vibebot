@@ -3,6 +3,10 @@
  * VBT-157: Implement Streaming Response Handler
  *
  * Handles Claude API streaming responses with event callbacks
+ *
+ * @deprecated This file is deprecated and maintained for backward compatibility only.
+ * Use the new provider-agnostic streaming from '@/services/ai/providers/streaming' instead.
+ * See MIGRATION.md for migration guide.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -20,6 +24,8 @@ import { calculateCost, getModelConfig } from './models';
 /**
  * Stream handler class
  * Manages Claude API streaming with event emissions
+ *
+ * @deprecated Use streaming utilities from '@/services/ai/providers/streaming' instead
  */
 export class StreamHandler {
   private contentBuffer: string = '';
@@ -31,7 +37,11 @@ export class StreamHandler {
   private streamCompleted: boolean = false;
   private lastEventTime: number = Date.now();
 
-  constructor(private readonly messageId: string, private readonly callback: StreamCallback) {}
+  constructor(private readonly messageId: string, private readonly callback: StreamCallback) {
+    console.warn(
+      '⚠️ StreamHandler (claude) is deprecated. Use the new provider-agnostic streaming from @/services/ai/providers/streaming instead. See MIGRATION.md for details.'
+    );
+  }
 
   /**
    * Handle message_start event

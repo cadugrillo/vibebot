@@ -3,6 +3,35 @@
  * Main service class for Claude API integration
  * VBT-154: Basic setup and initialization
  * VBT-156: Multi-model support
+ *
+ * ⚠️  DEPRECATED as of VBT-42 (AI Provider Abstraction Layer)
+ *
+ * This class is deprecated in favor of the new provider architecture.
+ * Use `ClaudeProvider` from `src/services/ai/providers/` instead.
+ *
+ * **Migration Guide**: See `MIGRATION.md` in this directory
+ *
+ * **Why migrate?**
+ * - Provider-agnostic architecture (easy to add OpenAI, etc.)
+ * - Better utilities (RateLimitManager, CircuitBreaker, ErrorLogger, SystemPromptManager)
+ * - Unified IAIProvider interface
+ * - Improved error handling with ProviderError
+ * - Built-in cost tracking
+ *
+ * **Quick comparison:**
+ * ```typescript
+ * // OLD (Deprecated):
+ * const claude = new ClaudeService();
+ * await claude.streamResponse({ messages, callbacks });
+ *
+ * // NEW (Recommended):
+ * import { ClaudeProvider } from '../providers';
+ * const provider = new ClaudeProvider(config);
+ * await provider.streamMessage(params, callback);
+ * ```
+ *
+ * This class will be removed in a future release.
+ * @deprecated Use ClaudeProvider instead
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -40,6 +69,16 @@ export class ClaudeService {
   private errorLogger = getErrorLogger(); // VBT-160: Error logging
 
   constructor() {
+    // ⚠️  DEPRECATION WARNING
+    console.warn('\n' + '='.repeat(80));
+    console.warn('⚠️  DEPRECATION WARNING: ClaudeService is deprecated!');
+    console.warn('');
+    console.warn('Please migrate to ClaudeProvider from src/services/ai/providers/');
+    console.warn('See MIGRATION.md for migration guide.');
+    console.warn('');
+    console.warn('ClaudeService will be removed in a future release.');
+    console.warn('='.repeat(80) + '\n');
+
     // Load configuration from environment
     this.config = getClaudeConfig();
 
@@ -62,7 +101,7 @@ export class ClaudeService {
     this.circuitBreaker = new CircuitBreakerManager();
 
     this.initialized = true;
-    console.log('ClaudeService initialized successfully');
+    console.log('ClaudeService initialized successfully (DEPRECATED)');
     console.log(`Default model: ${this.config.defaultModel}`);
     console.log(`Max tokens: ${this.config.maxTokens}`);
     console.log(`Timeout: ${this.config.timeout}ms`);

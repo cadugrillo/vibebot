@@ -1,9 +1,11 @@
 /**
  * WebSocket Message Handlers
  * Handle message send, receive, stream events with validation and rate limiting
+ * VBT-42: Integrated with AI Provider Abstraction Layer
  */
 
 import { ExtendedWebSocket, VibeWebSocketServer } from '../server';
+import { AIIntegrationHandler } from './aiIntegration';
 
 /**
  * Message event types
@@ -143,10 +145,42 @@ class MessageRateLimiter {
 export class MessageHandlers {
   private wsServer: VibeWebSocketServer;
   private rateLimiter: MessageRateLimiter;
+  private aiHandler: AIIntegrationHandler | null = null;
+  private aiEnabled: boolean = false;
 
-  constructor(wsServer: VibeWebSocketServer) {
+  constructor(wsServer: VibeWebSocketServer, enableAI: boolean = false) {
     this.wsServer = wsServer;
     this.rateLimiter = new MessageRateLimiter(10, 60000); // 10 messages per minute
+    this.aiEnabled = enableAI;
+
+    if (enableAI) {
+      console.log('AI integration enabled for message handlers');
+      this.aiHandler = new AIIntegrationHandler(wsServer);
+    }
+  }
+
+  /**
+   * Initialize AI handler (if enabled)
+   */
+  public async initialize(): Promise<void> {
+    if (this.aiHandler) {
+      await this.aiHandler.initialize();
+    }
+  }
+
+  /**
+   * Enable or disable AI responses
+   */
+  public setAIEnabled(enabled: boolean): void {
+    this.aiEnabled = enabled;
+    console.log(`AI responses ${enabled ? 'enabled' : 'disabled'}`);
+  }
+
+  /**
+   * Check if AI is enabled and ready
+   */
+  public isAIReady(): boolean {
+    return this.aiEnabled && this.aiHandler !== null && this.aiHandler.isReady();
   }
 
   /**
@@ -259,6 +293,20 @@ export class MessageHandlers {
     this.sendAck(ws, messageId, 'delivered');
 
     console.log(`Message ${messageId} delivered to conversation ${conversationId}`);
+
+    // Generate AI response if enabled
+    if (this.isAIReady()) {
+      console.log(`Triggering AI response for message ${messageId}`);
+      this.aiHandler!.generateAIResponse({
+        conversationId,
+        userId,
+        messageId,
+        content,
+      }).catch((error) => {
+        console.error('Failed to generate AI response:', error);
+        // Error already sent to conversation by aiHandler
+      });
+    }
   }
 
   /**
@@ -348,9 +396,19 @@ export class MessageHandlers {
   }
 
   /**
-   * Clear rate limiter data
+   * Clear rate limiter data and AI handler
    */
-  public clear(): void {
+  public async clear(): Promise<void> {
     this.rateLimiter.clear();
+    if (this.aiHandler) {
+      await this.aiHandler.shutdown();
+    }
+  }
+
+  /**
+   * Get AI handler stats
+   */
+  public getAIStats() {
+    return this.aiHandler?.getStats() || { ready: false };
   }
 }

@@ -3,6 +3,10 @@
  * VBT-159: Implement Rate Limit Detection and Handling
  *
  * Handles Claude API rate limits with exponential backoff and retry logic
+ *
+ * @deprecated This file is deprecated and maintained for backward compatibility only.
+ * Use the new provider-agnostic RateLimitManager from '@/services/ai/providers/utils/rate-limit/RateLimitManager' instead.
+ * See MIGRATION.md for migration guide.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -44,12 +48,17 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
 /**
  * Rate limit handler class
  * Manages rate limit detection, parsing, and retry logic
+ *
+ * @deprecated Use RateLimitManager from '@/services/ai/providers/utils/rate-limit/RateLimitManager' instead
  */
 export class RateLimitHandler {
   private config: RetryConfig;
   private retryCount: number = 0;
 
   constructor(config: Partial<RetryConfig> = {}) {
+    console.warn(
+      '⚠️ RateLimitHandler is deprecated. Use RateLimitManager from @/services/ai/providers/utils/rate-limit/RateLimitManager instead. See MIGRATION.md for details.'
+    );
     this.config = { ...DEFAULT_RETRY_CONFIG, ...config };
   }
 

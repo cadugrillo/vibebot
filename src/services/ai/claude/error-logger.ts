@@ -4,6 +4,10 @@
  *
  * Provides structured logging for errors with severity levels,
  * context, and monitoring capabilities.
+ *
+ * @deprecated This file is deprecated and maintained for backward compatibility only.
+ * Use the new provider-agnostic ErrorLogger from '@/services/ai/providers/utils/error-logging/ErrorLogger' instead.
+ * See MIGRATION.md for migration guide.
  */
 
 import { ClaudeServiceError, ErrorSeverity, ClaudeErrorType } from './types';
@@ -40,10 +44,18 @@ export interface ErrorStats {
 /**
  * Error Logger class
  * Manages error logging with structured data and statistics
+ *
+ * @deprecated Use ErrorLogger from '@/services/ai/providers/utils/error-logging/ErrorLogger' instead
  */
 export class ErrorLogger {
   private errors: ErrorLogEntry[] = [];
   private maxEntries: number = 1000; // Keep last 1000 errors
+
+  constructor() {
+    console.warn(
+      '⚠️ ErrorLogger (claude) is deprecated. Use the new provider-agnostic ErrorLogger from @/services/ai/providers/utils/error-logging/ErrorLogger instead. See MIGRATION.md for details.'
+    );
+  }
 
   /**
    * Log an error
