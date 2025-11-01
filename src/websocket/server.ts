@@ -70,8 +70,8 @@ export class VibeWebSocketServer {
     // Initialize connection manager
     this.connectionManager = new ConnectionManager();
 
-    // Initialize message handlers
-    this.messageHandlers = new MessageHandlers(this);
+    // Initialize message handlers with AI enabled
+    this.messageHandlers = new MessageHandlers(this, true);
 
     // Initialize typing handlers
     this.typingHandlers = new TypingHandlers(this);
@@ -82,8 +82,11 @@ export class VibeWebSocketServer {
   /**
    * Initialize WebSocket server with event handlers
    */
-  private initialize(): void {
+  private async initialize(): Promise<void> {
     console.log('Initializing WebSocket server...');
+
+    // Initialize AI handler if enabled
+    await this.messageHandlers.initialize();
 
     // Setup connection handler
     this.wss.on('connection', this.handleConnection.bind(this));

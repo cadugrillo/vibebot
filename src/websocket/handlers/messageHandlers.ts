@@ -270,6 +270,12 @@ export class MessageHandlers {
       return;
     }
 
+    // Auto-join conversation if not already joined
+    if (ws.conversationId !== conversationId) {
+      console.log(`Auto-joining user ${userId} to conversation ${conversationId}`);
+      this.wsServer.joinConversation(ws, conversationId);
+    }
+
     // Send acknowledgment that message was received
     this.sendAck(ws, messageId, 'received');
 
