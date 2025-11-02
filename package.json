@@ -20,7 +20,10 @@
     "test:claude": "tsx src/services/ai/claude/test-connection.ts",
     "test:claude:models": "tsx src/services/ai/claude/test-models.ts",
     "test:claude:stream": "tsx src/services/ai/claude/test-streaming.ts",
-    "test:ai-integration": "tsx src/websocket/handlers/test-ai-integration.ts"
+    "test:ai-integration": "tsx src/websocket/handlers/test-ai-integration.ts",
+    "test:provider-factory": "tsx src/services/ai/providers/__tests__/test-factory.ts",
+    "test:provider-fallback": "tsx src/services/ai/providers/__tests__/test-fallback.ts",
+    "test:provider-unit": "npm run test:provider-factory && npm run test:provider-fallback"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

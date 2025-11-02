@@ -279,6 +279,184 @@ export interface ConversationHistoryEntry {
 }
 
 /**
+ * VBT-171: Provider Selection Logic Types
+ */
+
+/**
+ * Selection strategy types
+ * Defines how provider should be selected
+ */
+export enum SelectionStrategyType {
+  BY_NAME = 'BY_NAME',                   // Select by explicit provider name
+  BY_CAPABILITY = 'BY_CAPABILITY',       // Select by required capabilities
+  BY_COST = 'BY_COST',                   // Select cheapest option
+  BY_AVAILABILITY = 'BY_AVAILABILITY',   // Select based on health/availability
+  AUTO = 'AUTO',                         // Automatic selection (default logic)
+}
+
+/**
+ * Model capability enum for selection
+ * Used to filter providers by required features
+ */
+export enum ModelCapability {
+  STREAMING = 'STREAMING',
+  VISION = 'VISION',
+  FUNCTION_CALLING = 'FUNCTION_CALLING',
+  PROMPT_CACHING = 'PROMPT_CACHING',
+  JSON_MODE = 'JSON_MODE',
+}
+
+/**
+ * Provider selection context
+ * Contains all information needed to select appropriate provider
+ */
+export interface SelectionContext {
+  /** User ID making the request */
+  userId?: string;
+
+  /** Conversation ID for context-specific selection */
+  conversationId?: string;
+
+  /** Explicitly preferred provider (overrides other strategies) */
+  preferredProvider?: ProviderType;
+
+  /** Specific model ID requested */
+  modelId?: string;
+
+  /** Required model capabilities */
+  requiredCapabilities?: ModelCapability[];
+
+  /** Maximum cost per token constraint */
+  maxCostPerToken?: number;
+
+  /** Estimated message length for cost calculation */
+  estimatedTokens?: number;
+
+  /** Providers to exclude from selection */
+  excludeProviders?: ProviderType[];
+
+  /** Selection strategy to use */
+  strategy?: SelectionStrategyType;
+
+  /** Additional context data */
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Provider preference for user/conversation
+ */
+export interface ProviderPreference {
+  /** User ID */
+  userId: string;
+
+  /** Optional conversation ID (null means user-level default) */
+  conversationId?: string;
+
+  /** Preferred provider type */
+  preferredProvider: ProviderType;
+
+  /** Preferred model ID */
+  preferredModel?: string;
+
+  /** Maximum cost per message (USD) */
+  maxCostPerMessage?: number;
+
+  /** When preference was created */
+  createdAt: Date;
+
+  /** When preference was last updated */
+  updatedAt: Date;
+}
+
+/**
+ * VBT-172: Provider Capabilities and Metadata Types
+ */
+
+/**
+ * Provider status information
+ * Indicates current health and availability of the provider
+ */
+export interface ProviderStatus {
+  /** Whether the provider is currently available */
+  available: boolean;
+
+  /** Circuit breaker state (CLOSED = healthy, HALF_OPEN = recovering, OPEN = unavailable) */
+  circuitState: 'CLOSED' | 'HALF_OPEN' | 'OPEN';
+
+  /** Whether the provider is initialized and ready */
+  initialized: boolean;
+
+  /** Whether API credentials are valid (if tested) */
+  authenticated?: boolean;
+
+  /** Last successful API call timestamp */
+  lastSuccess?: Date;
+
+  /** Last failed API call timestamp */
+  lastFailure?: Date;
+
+  /** Consecutive failure count */
+  consecutiveFailures: number;
+
+  /** Current error rate (0-1) */
+  errorRate: number;
+
+  /** Additional status metadata */
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Provider rate limit configuration
+ * Exposes current rate limit settings and usage
+ */
+export interface ProviderRateLimits {
+  /** Requests per minute limit */
+  requestsPerMinute?: number;
+
+  /** Tokens per minute limit */
+  tokensPerMinute?: number;
+
+  /** Tokens per day limit */
+  tokensPerDay?: number;
+
+  /** Current requests used in window */
+  currentRequests?: number;
+
+  /** Current tokens used in window */
+  currentTokens?: number;
+
+  /** When the current rate limit window resets */
+  windowReset?: Date;
+
+  /** Whether currently rate limited */
+  isRateLimited: boolean;
+
+  /** Retry after duration (seconds) if rate limited */
+  retryAfter?: number;
+}
+
+/**
+ * Model availability status
+ * Indicates whether a specific model is currently accessible
+ */
+export interface ModelAvailability {
+  /** Model identifier */
+  modelId: string;
+
+  /** Whether the model is currently available */
+  available: boolean;
+
+  /** Reason if unavailable */
+  unavailableReason?: string;
+
+  /** Whether the model is deprecated */
+  deprecated: boolean;
+
+  /** Last time availability was checked */
+  lastChecked?: Date;
+}
+
+/**
  * Convert Prisma MessageRole to unified AI message role
  */
 export function toAIMessageRole(role: MessageRole): 'user' | 'assistant' | 'system' {

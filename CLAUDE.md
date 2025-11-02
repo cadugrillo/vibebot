@@ -108,6 +108,31 @@ Completed:
   - ✅ Old implementation deprecated with notices
   - ✅ AI Integration testing (17 tests, all passing)
 
+- ✅ VBT-171: Provider Selection Logic (✅ COMPLETE!)
+  - ✅ ProviderSelector with 4 selection strategies (AUTO, COST, SPEED, QUALITY)
+  - ✅ Strategy-based provider selection with fallback logic
+  - ✅ ProviderPreferenceManager for user/conversation preferences
+  - ✅ ModelRegistry with 3 Claude models (Sonnet 4.5, Opus 4, Haiku 4.5)
+  - ✅ FallbackChainManager for automatic failover
+  - ✅ AIProviderFactory with singleton pattern and caching
+  - ✅ Full integration with AIIntegrationHandler
+
+- ✅ VBT-172: Provider Capabilities and Metadata (✅ COMPLETE!)
+  - ✅ ProviderStatus interface (circuit breaker state, error rates, availability)
+  - ✅ ProviderRateLimits interface (requests/tokens per minute/day, retry timing)
+  - ✅ ModelAvailability interface (deprecated status, availability checks)
+  - ✅ IAIProvider methods: getProviderStatus(), getRateLimitInfo(), checkModelAvailability()
+  - ✅ ClaudeProvider implementation with circuit breaker integration
+  - ✅ 4 integration tests added (42 total tests passing)
+
+- ✅ VBT-173: Comprehensive Unit Testing (✅ COMPLETE!)
+  - ✅ MockProvider implementation (380 lines, full IAIProvider with configurable behavior)
+  - ✅ Factory unit tests (8 tests, 23 assertions: singleton, registration, creation, caching, reset)
+  - ✅ Fallback unit tests (5 tests, 9 assertions: basic fallback, exhaustion, custom chains, statistics)
+  - ✅ Test scripts added to package.json (test:provider-factory, test:provider-fallback, test:provider-unit)
+  - ✅ 74 total test assertions passing (100% pass rate)
+  - ✅ Test files: MockProvider.ts, test-factory.ts, test-fallback.ts
+
 Remaining Phase 3 Tasks:
 - ⏳ Conversation management API
 - ⏳ Message processing and routing
@@ -119,17 +144,33 @@ See `development_tasks.md` for the complete development sequence.
 
 ## 📍 Where to Pick Up
 
-**Last Completed**: VBT-42 - AI Provider Abstraction Layer (✅ COMPLETE!)
+**Last Completed**: VBT-173 - Comprehensive Unit Testing (✅ COMPLETE!)
 
-**Next Task**: VBT-43 (Conversation Management API) or VBT-44 (OpenAI Provider)
+**Next Task**: Check Jira for next Phase 3 story (Conversation Management API or OpenAI Provider)
 
 **To Resume Work:**
 1. Check Jira for the next Phase 3 story
 2. VBT-39 (WebSocket Server) is complete with all 10 sub-tasks ✅
 3. VBT-40 (Claude API Integration) is complete with all 10 sub-tasks ✅
 4. VBT-42 (AI Provider Abstraction Layer) is complete with all 12 tasks ✅
-5. Remaining Phase 3 work: Conversation management API, OpenAI provider implementation
-6. Run tests: `npm run test:ai-integration` (17 tests, all passing)
+5. VBT-171 (Provider Selection Logic) is complete ✅
+6. VBT-172 (Provider Capabilities and Metadata) is complete ✅
+7. VBT-173 (Comprehensive Unit Testing) is complete ✅
+8. Remaining Phase 3 work: Conversation management API, OpenAI provider implementation
+
+**Test Commands:**
+```bash
+npm run test:ai-integration      # Run 42 integration tests (all passing)
+npm run test:provider-factory    # Run 8 factory unit tests (23 assertions)
+npm run test:provider-fallback   # Run 5 fallback unit tests (9 assertions)
+npm run test:provider-unit       # Run all provider unit tests (32 assertions)
+```
+
+**Test Coverage:**
+- ✅ 42 integration tests passing (VBT-172 capabilities included)
+- ✅ 23 factory unit test assertions passing
+- ✅ 9 fallback unit test assertions passing
+- ✅ **Total: 74 test assertions passing (100% pass rate)**
 
 **Current Project State:**
 - ✅ **Phase 1 (Foundation)** - COMPLETE
@@ -150,7 +191,7 @@ See `development_tasks.md` for the complete development sequence.
   - Automatic Token Refresh
   - Security: HTTP-only cookies, bcrypt, rate limiting
 
-- 🚧 **Phase 3 (Core Chat Backend)** - IN PROGRESS (VBT-39, VBT-40, VBT-42 complete!)
+- 🚧 **Phase 3 (Core Chat Backend)** - IN PROGRESS (VBT-39, VBT-40, VBT-42, VBT-171, VBT-172, VBT-173 complete!)
   - ✅ **WebSocket Server (VBT-39)** - COMPLETE (10/10 sub-tasks)
     - ✅ WebSocket server setup and infrastructure (ws package integrated with HTTP server)
     - ✅ WebSocket authentication with JWT (query parameter token verification)
@@ -186,6 +227,24 @@ See `development_tasks.md` for the complete development sequence.
     - ✅ Migration guide (300+ lines) and documentation (450+ lines README)
     - ✅ Old implementation deprecated with runtime warnings
     - ✅ Test suite: `npm run test:ai-integration` (all 17 tests passing)
+  - ✅ **Provider Selection Logic (VBT-171)** - COMPLETE
+    - ✅ ProviderSelector with 4 strategies (AUTO, COST, SPEED, QUALITY)
+    - ✅ ProviderPreferenceManager for user/conversation preferences
+    - ✅ ModelRegistry with 3 Claude models
+    - ✅ FallbackChainManager for automatic failover
+    - ✅ AIProviderFactory with singleton pattern and caching
+    - ✅ Full integration with AIIntegrationHandler
+  - ✅ **Provider Capabilities and Metadata (VBT-172)** - COMPLETE
+    - ✅ ProviderStatus, ProviderRateLimits, ModelAvailability interfaces
+    - ✅ IAIProvider methods for status, rate limits, availability
+    - ✅ ClaudeProvider implementation with circuit breaker integration
+    - ✅ 4 integration tests added (42 total integration tests passing)
+  - ✅ **Comprehensive Unit Testing (VBT-173)** - COMPLETE
+    - ✅ MockProvider (380 lines, full IAIProvider mock)
+    - ✅ Factory unit tests (8 tests, 23 assertions)
+    - ✅ Fallback unit tests (5 tests, 9 assertions)
+    - ✅ Test scripts: test:provider-factory, test:provider-fallback, test:provider-unit
+    - ✅ 74 total test assertions passing (100% pass rate)
   - ⏳ Conversation management API (upcoming)
   - ⏳ Message processing and routing (upcoming)
   - ⏳ OpenAI provider implementation (upcoming)

@@ -10,6 +10,7 @@ import 'dotenv/config';
 
 import { AIIntegrationHandler } from './aiIntegration';
 import { MessageEventType } from './messageHandlers';
+import { AIProviderFactory, ProviderType } from '../../services/ai/providers';
 
 // Mock WebSocket server for testing
 class MockWebSocketServer {
@@ -320,11 +321,168 @@ async function testStatistics(): Promise<void> {
 
   assert(stats.ready === true, 'Should report ready status');
   assert(stats.conversationCount === 1, 'Should track conversations');
-  assert(stats.errorStats !== undefined, 'Should have error stats');
-  assert(stats.circuitBreakerStats !== undefined, 'Should have circuit breaker stats');
+  assert(stats.registeredProviders !== undefined, 'Should have registered providers');
+  assert(stats.providerCount !== undefined && stats.providerCount > 0, 'Should have provider count');
 
   console.log('Statistics:', JSON.stringify(stats, null, 2));
   console.log('✅ Statistics tracking test passed\n');
+}
+
+/**
+ * VBT-172: Test provider status information
+ */
+async function testProviderStatus() {
+  console.log('Test: Provider Status (VBT-172)');
+
+  // Get provider from factory
+  const factory = AIProviderFactory.getInstance();
+  const provider = factory.createProvider(ProviderType.CLAUDE, {
+    provider: ProviderType.CLAUDE,
+    apiKey: process.env.ANTHROPIC_API_KEY || 'test-key',
+    defaultModel: 'claude-sonnet-4-5-20250929',
+    maxTokens: 2048,
+    timeout: 30000,
+    maxRetries: 3,
+  });
+
+  // Get provider status
+  const status = provider.getProviderStatus();
+
+  assert(status.initialized === true, 'Should be initialized');
+  assert(status.circuitState !== undefined, 'Should have circuit state');
+  assert(['CLOSED', 'HALF_OPEN', 'OPEN'].includes(status.circuitState), 'Should have valid circuit state');
+  assert(typeof status.available === 'boolean', 'Should have availability flag');
+  assert(typeof status.consecutiveFailures === 'number', 'Should have consecutive failures count');
+  assert(typeof status.errorRate === 'number', 'Should have error rate');
+  assert(status.errorRate >= 0 && status.errorRate <= 1, 'Error rate should be between 0 and 1');
+
+  console.log('Provider Status:', {
+    initialized: status.initialized,
+    available: status.available,
+    circuitState: status.circuitState,
+    consecutiveFailures: status.consecutiveFailures,
+    errorRate: status.errorRate,
+  });
+
+  console.log('✅ Provider status test passed\n');
+}
+
+/**
+ * VBT-172: Test rate limit information
+ */
+async function testRateLimitInfo() {
+  console.log('Test: Rate Limit Information (VBT-172)');
+
+  // Get provider from factory
+  const factory = AIProviderFactory.getInstance();
+  const provider = factory.createProvider(ProviderType.CLAUDE, {
+    provider: ProviderType.CLAUDE,
+    apiKey: process.env.ANTHROPIC_API_KEY || 'test-key',
+    defaultModel: 'claude-sonnet-4-5-20250929',
+    maxTokens: 2048,
+    timeout: 30000,
+    maxRetries: 3,
+  });
+
+  // Get rate limit info
+  const rateLimits = provider.getRateLimitInfo();
+
+  assert(typeof rateLimits.isRateLimited === 'boolean', 'Should have isRateLimited flag');
+  assert(rateLimits.requestsPerMinute !== undefined, 'Should have requestsPerMinute limit');
+  assert(rateLimits.tokensPerMinute !== undefined, 'Should have tokensPerMinute limit');
+
+  console.log('Rate Limit Info:', {
+    isRateLimited: rateLimits.isRateLimited,
+    requestsPerMinute: rateLimits.requestsPerMinute,
+    tokensPerMinute: rateLimits.tokensPerMinute,
+    tokensPerDay: rateLimits.tokensPerDay,
+  });
+
+  console.log('✅ Rate limit info test passed\n');
+}
+
+/**
+ * VBT-172: Test model availability checking
+ */
+async function testModelAvailability() {
+  console.log('Test: Model Availability (VBT-172)');
+
+  // Get provider from factory
+  const factory = AIProviderFactory.getInstance();
+  const provider = factory.createProvider(ProviderType.CLAUDE, {
+    provider: ProviderType.CLAUDE,
+    apiKey: process.env.ANTHROPIC_API_KEY || 'test-key',
+    defaultModel: 'claude-sonnet-4-5-20250929',
+    maxTokens: 2048,
+    timeout: 30000,
+    maxRetries: 3,
+  });
+
+  // Check availability of a valid model
+  const validModel = provider.checkModelAvailability('claude-sonnet-4-5-20250929');
+  assert(validModel.modelId === 'claude-sonnet-4-5-20250929', 'Should return correct model ID');
+  assert(validModel.available === true, 'Valid model should be available');
+  assert(validModel.deprecated === false, 'Sonnet 4.5 should not be deprecated');
+
+  // Check availability of an invalid model
+  const invalidModel = provider.checkModelAvailability('invalid-model-xyz');
+  assert(invalidModel.modelId === 'invalid-model-xyz', 'Should return queried model ID');
+  assert(invalidModel.available === false, 'Invalid model should not be available');
+  assert(invalidModel.unavailableReason !== undefined, 'Should have unavailability reason');
+
+  console.log('Valid Model:', {
+    modelId: validModel.modelId,
+    available: validModel.available,
+    deprecated: validModel.deprecated,
+  });
+
+  console.log('Invalid Model:', {
+    modelId: invalidModel.modelId,
+    available: invalidModel.available,
+    unavailableReason: invalidModel.unavailableReason,
+  });
+
+  console.log('✅ Model availability test passed\n');
+}
+
+/**
+ * VBT-172: Test provider metadata
+ */
+async function testProviderMetadata() {
+  console.log('Test: Provider Metadata (VBT-172)');
+
+  // Get provider from factory
+  const factory = AIProviderFactory.getInstance();
+  const provider = factory.createProvider(ProviderType.CLAUDE, {
+    provider: ProviderType.CLAUDE,
+    apiKey: process.env.ANTHROPIC_API_KEY || 'test-key',
+    defaultModel: 'claude-sonnet-4-5-20250929',
+    maxTokens: 2048,
+    timeout: 30000,
+    maxRetries: 3,
+  });
+
+  // Get provider metadata
+  const metadata = provider.getMetadata();
+
+  assert(metadata.type === ProviderType.CLAUDE, 'Should have correct provider type');
+  assert(metadata.name !== undefined, 'Should have provider name');
+  assert(metadata.description !== undefined, 'Should have provider description');
+  assert(Array.isArray(metadata.models), 'Should have models array');
+  assert(metadata.models.length > 0, 'Should have at least one model');
+  assert(metadata.capabilities !== undefined, 'Should have capabilities');
+  assert(typeof metadata.capabilities.streaming === 'boolean', 'Should have streaming capability');
+  assert(typeof metadata.capabilities.vision === 'boolean', 'Should have vision capability');
+  assert(metadata.capabilities.streaming === true, 'Claude should support streaming');
+
+  console.log('Provider Metadata:', {
+    type: metadata.type,
+    name: metadata.name,
+    modelCount: metadata.models.length,
+    capabilities: metadata.capabilities,
+  });
+
+  console.log('✅ Provider metadata test passed\n');
 }
 
 // Main test runner
@@ -342,6 +500,12 @@ async function runTests(): Promise<void> {
     await testHistoryClear();
     await testConfiguration();
     await testStatistics();
+
+    // VBT-172: Provider Capabilities and Metadata tests
+    await testProviderStatus();
+    await testRateLimitInfo();
+    await testModelAvailability();
+    await testProviderMetadata();
 
     console.log('\n' + '='.repeat(70));
     console.log('✅ ALL TESTS PASSED!');

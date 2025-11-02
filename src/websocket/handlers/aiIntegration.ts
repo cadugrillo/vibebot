@@ -1,15 +1,25 @@
 /**
  * WebSocket AI Integration
- * Integrates ClaudeProvider with WebSocket message handlers for real-time AI responses
+ * Integrates AI providers with WebSocket message handlers for real-time AI responses
  *
  * VBT-42: AI Provider Abstraction Layer Integration
+ * VBT-171: Provider Selection Logic Integration
  */
 
 import { ClaudeProvider } from '../../services/ai/providers/claude';
+import { IAIProvider } from '../../services/ai/providers/IAIProvider';
 import { AIProviderFactory } from '../../services/ai/providers/factory';
 import { ProviderConfigManager } from '../../services/ai/providers/config';
-import { ProviderType, AIMessage, StreamCallback } from '../../services/ai/providers/types';
+import {
+  ProviderType,
+  AIMessage,
+  StreamCallback,
+  SelectionContext,
+  SelectionStrategyType,
+} from '../../services/ai/providers/types';
 import { ProviderError, ProviderErrorType } from '../../services/ai/providers/errors';
+import { ProviderSelector } from '../../services/ai/providers/selector';
+import { FallbackChainManager } from '../../services/ai/providers/fallback';
 import { VibeWebSocketServer } from '../server';
 import { MessageEventType, MessageStreamEvent } from './messageHandlers';
 
@@ -18,12 +28,12 @@ import { MessageEventType, MessageStreamEvent } from './messageHandlers';
  */
 export interface AIIntegrationConfig {
   /**
-   * Default provider to use (default: CLAUDE)
+   * Default provider selection strategy (default: AUTO)
    */
-  defaultProvider?: ProviderType;
+  selectionStrategy?: SelectionStrategyType;
 
   /**
-   * Default model to use (provider-specific)
+   * Default model to use (provider-specific, optional)
    */
   defaultModel?: string;
 
@@ -41,6 +51,11 @@ export interface AIIntegrationConfig {
    * Temperature for response generation (0-2)
    */
   temperature?: number;
+
+  /**
+   * Enable automatic fallback to alternate providers
+   */
+  enableFallback?: boolean;
 }
 
 /**
@@ -57,73 +72,106 @@ export interface AIMessageContext {
 /**
  * AI Integration Handler
  * Manages AI provider interactions for WebSocket connections
+ * VBT-171: Now supports dynamic provider selection
  */
 export class AIIntegrationHandler {
   private wsServer: VibeWebSocketServer;
-  private provider: ClaudeProvider | null = null;
   private config: AIIntegrationConfig;
   private conversationHistories: Map<string, AIMessage[]> = new Map();
+
+  // VBT-171: New components for provider selection
+  private providerSelector: ProviderSelector;
+  private providerFactory: AIProviderFactory;
+  private fallbackManager: FallbackChainManager;
 
   constructor(wsServer: VibeWebSocketServer, config?: AIIntegrationConfig) {
     this.wsServer = wsServer;
     this.config = {
-      defaultProvider: ProviderType.CLAUDE,
+      selectionStrategy: SelectionStrategyType.AUTO,
       systemPrompt: undefined, // Use provider's default
       maxTokens: 2048,
       temperature: 0.7,
+      enableFallback: true,
       ...config,
     };
 
+    // VBT-171: Initialize selection components
+    this.providerSelector = ProviderSelector.getInstance();
+    this.providerFactory = AIProviderFactory.getInstance();
+    this.fallbackManager = FallbackChainManager.getInstance();
+
     console.log('AIIntegrationHandler initialized');
-    console.log(`  Default provider: ${this.config.defaultProvider}`);
+    console.log(`  Selection strategy: ${this.config.selectionStrategy}`);
     console.log(`  Default model: ${this.config.defaultModel || 'auto'}`);
+    console.log(`  Fallback enabled: ${this.config.enableFallback}`);
   }
 
   /**
-   * Initialize AI provider
-   * Must be called before handling AI requests
+   * Initialize AI providers
+   * VBT-171: Now registers all available providers
    */
   public async initialize(): Promise<void> {
     try {
-      console.log('Initializing AI provider...');
+      console.log('Initializing AI providers...');
 
-      // Get config from environment
-      const configManager = ProviderConfigManager.getInstance();
-      const providerConfig = configManager.getConfig(
-        this.config.defaultProvider || ProviderType.CLAUDE
-      );
-
-      // Create provider using factory
-      const factory = AIProviderFactory.getInstance();
-
-      // Register ClaudeProvider if not already registered
-      const registeredProviders = factory.getRegisteredProviders();
-      if (!registeredProviders.includes(ProviderType.CLAUDE)) {
-        factory.registerProvider(
+      // Register ClaudeProvider
+      if (!this.providerFactory.isProviderRegistered(ProviderType.CLAUDE)) {
+        console.log('  Registering Claude provider...');
+        this.providerFactory.registerProvider(
           ProviderType.CLAUDE,
           (config) => new ClaudeProvider(config)
         );
       }
 
-      this.provider = factory.createProvider(
-        this.config.defaultProvider || ProviderType.CLAUDE,
-        providerConfig
-      ) as ClaudeProvider;
+      // Register OpenAI provider (when implemented - VBT-169)
+      // if (!this.providerFactory.isProviderRegistered(ProviderType.OPENAI)) {
+      //   this.providerFactory.registerProvider(
+      //     ProviderType.OPENAI,
+      //     (config) => new OpenAIProvider(config)
+      //   );
+      // }
 
-      // Provider is already initialized in constructor
-      console.log('✅ AI provider initialized successfully');
-      console.log(`  Provider: ${this.provider.getMetadata().name}`);
+      console.log('✅ AI providers initialized successfully');
+      const providers = this.providerFactory.getRegisteredProviders();
+      console.log(`  Registered providers: ${providers.join(', ')}`);
     } catch (error) {
-      console.error('❌ Failed to initialize AI provider:', error);
+      console.error('❌ Failed to initialize AI providers:', error);
       throw error;
     }
   }
 
   /**
-   * Check if provider is ready
+   * Check if providers are ready
    */
   public isReady(): boolean {
-    return this.provider !== null;
+    const providers = this.providerFactory.getRegisteredProviders();
+    return providers.length > 0;
+  }
+
+  /**
+   * VBT-171: Get provider instance for a specific type
+   * Creates or retrieves cached provider instance
+   */
+  private getProviderInstance(providerType: ProviderType): IAIProvider {
+    const configManager = ProviderConfigManager.getInstance();
+    const providerConfig = configManager.getConfig(providerType);
+
+    return this.providerFactory.createProvider(providerType, providerConfig);
+  }
+
+  /**
+   * VBT-171: Select appropriate provider for request
+   * Uses ProviderSelector to choose best provider
+   */
+  private selectProvider(context: AIMessageContext): ProviderType {
+    const selectionContext: SelectionContext = {
+      userId: context.userId,
+      conversationId: context.conversationId,
+      modelId: this.config.defaultModel,
+      strategy: this.config.selectionStrategy,
+    };
+
+    return this.providerSelector.selectProvider(selectionContext);
   }
 
   /**
@@ -159,11 +207,12 @@ export class AIIntegrationHandler {
 
   /**
    * Generate AI response with streaming
+   * VBT-171: Now uses ProviderSelector and fallback support
    * Streams response chunks back to all participants via WebSocket
    */
   public async generateAIResponse(context: AIMessageContext): Promise<void> {
-    if (!this.provider) {
-      throw new Error('AI provider not initialized. Call initialize() first.');
+    if (!this.isReady()) {
+      throw new Error('AI providers not initialized. Call initialize() first.');
     }
 
     const { conversationId, userId, messageId, content } = context;
@@ -235,20 +284,48 @@ export class AIIntegrationHandler {
         }
       };
 
-      // Stream AI response
-      await this.provider.streamMessage(
-        {
-          conversationId,
-          userId,
-          messages: history,
-          messageId: aiMessageId,
-          model: this.config.defaultModel,
-          systemPrompt: this.config.systemPrompt,
-          maxTokens: this.config.maxTokens,
-          temperature: this.config.temperature,
-        },
-        streamCallback
-      );
+      // VBT-171: Select appropriate provider
+      const providerType = this.selectProvider(context);
+      console.log(`Selected provider: ${providerType}`);
+
+      // VBT-171: Execute with fallback support if enabled
+      if (this.config.enableFallback) {
+        await this.fallbackManager.executeWithFallback(
+          providerType,
+          async (provider) => {
+            return await provider.streamMessage(
+              {
+                conversationId,
+                userId,
+                messages: history,
+                messageId: aiMessageId,
+                model: this.config.defaultModel,
+                systemPrompt: this.config.systemPrompt,
+                maxTokens: this.config.maxTokens,
+                temperature: this.config.temperature,
+              },
+              streamCallback
+            );
+          },
+          (type) => this.getProviderInstance(type)
+        );
+      } else {
+        // No fallback - use selected provider directly
+        const provider = this.getProviderInstance(providerType);
+        await provider.streamMessage(
+          {
+            conversationId,
+            userId,
+            messages: history,
+            messageId: aiMessageId,
+            model: this.config.defaultModel,
+            systemPrompt: this.config.systemPrompt,
+            maxTokens: this.config.maxTokens,
+            temperature: this.config.temperature,
+          },
+          streamCallback
+        );
+      }
     } catch (error) {
       console.error('Error generating AI response:', error);
 
@@ -309,23 +386,24 @@ export class AIIntegrationHandler {
 
   /**
    * Get provider statistics
+   * VBT-171: Now returns stats for all registered providers
    */
   public getStats() {
-    if (!this.provider) {
+    if (!this.isReady()) {
       return {
         ready: false,
         conversationCount: this.conversationHistories.size,
       };
     }
 
-    const errorLogger = this.provider.getErrorLogger();
-    const circuitBreaker = this.provider.getCircuitBreaker();
+    const registeredProviders = this.providerFactory.getRegisteredProviders();
 
     return {
       ready: true,
       conversationCount: this.conversationHistories.size,
-      errorStats: errorLogger.getStats(),
-      circuitBreakerStats: circuitBreaker.getAllStats(),
+      registeredProviders,
+      providerCount: registeredProviders.length,
+      fallbackStats: this.fallbackManager.getStats(),
     };
   }
 
@@ -339,6 +417,7 @@ export class AIIntegrationHandler {
 
   /**
    * Shutdown and cleanup
+   * VBT-171: Cleans up all providers via factory
    */
   public async shutdown(): Promise<void> {
     console.log('Shutting down AI integration...');
@@ -346,8 +425,8 @@ export class AIIntegrationHandler {
     // Clear all histories
     this.conversationHistories.clear();
 
-    // Provider cleanup (if needed)
-    this.provider = null;
+    // Clear provider factory cache
+    await this.providerFactory.clearCache();
 
     console.log('AI integration shutdown complete');
   }

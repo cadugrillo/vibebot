@@ -119,8 +119,57 @@ export {
   MessageMetadata,
   ConversationHistoryEntry,
 
+  // VBT-171: Provider Selection Types
+  SelectionStrategyType,
+  SelectionContext,
+  ModelCapability,
+  ProviderPreference,
+
+  // VBT-172: Provider Capabilities and Metadata Types
+  ProviderStatus,
+  ProviderRateLimits,
+  ModelAvailability,
+
   // Utility functions
   toAIMessageRole,
   buildAIMessages,
   calculateCostFromUsage,
 } from './types';
+
+// VBT-171: Provider Selection Logic
+export {
+  ProviderSelector,
+  ProviderSelectorError,
+  getProviderSelector,
+  resetProviderSelector,
+} from './selector';
+
+export {
+  ModelRegistry,
+  ModelRegistryError,
+  getModelRegistry,
+  resetModelRegistry,
+} from './model-registry';
+
+export {
+  FallbackChainManager,
+  FallbackOptions,
+  getFallbackManager,
+  resetFallbackManager,
+} from './fallback';
+
+export {
+  ProviderPreferenceManager,
+  getPreferenceManager,
+  resetPreferenceManager,
+} from './preferences';
+
+// VBT-171: Selection Strategies
+export {
+  ISelectionStrategy,
+  BaseSelectionStrategy,
+  SelectByNameStrategy,
+  SelectByCapabilityStrategy,
+  SelectByCostStrategy,
+  SelectByAvailabilityStrategy,
+} from './strategies';

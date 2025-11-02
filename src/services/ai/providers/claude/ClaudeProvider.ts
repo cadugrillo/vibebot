@@ -18,6 +18,9 @@ import {
   SendMessageParams,
   StreamMessageParams,
   StreamCallback,
+  ProviderStatus,
+  ProviderRateLimits,
+  ModelAvailability,
 } from '../types';
 import { ProviderError, ProviderErrorType } from '../errors';
 import {
@@ -497,6 +500,126 @@ export class ClaudeProvider implements IAIProvider {
     const outputCost = (outputTokens / 1_000_000) * modelConfig.pricing.output;
 
     return inputCost + outputCost;
+  }
+
+  /**
+   * VBT-172: Get current provider status
+   * Returns health and availability information from circuit breaker and error logger
+   */
+  public getProviderStatus(): ProviderStatus {
+    const circuitKey = `provider:${ProviderType.CLAUDE}`;
+    const breaker = this.circuitBreaker.getBreaker(circuitKey);
+    const stats = this.errorLogger.getStats();
+
+    // Get circuit state
+    const circuitState = breaker.getState();
+
+    // Get recent errors for analysis
+    const recentErrors = this.errorLogger.getRecentErrors(100);
+
+    // Calculate error rate from high/critical severity errors
+    const errorCount = recentErrors.filter(
+      (e: any) => e.severity === 'HIGH' || e.severity === 'CRITICAL'
+    ).length;
+    const errorRate = recentErrors.length > 0 ? errorCount / recentErrors.length : 0;
+
+    // Get last success/failure timestamps
+    const successEvents = recentErrors.filter((e: any) => e.severity === 'LOW');
+    const failureEvents = recentErrors.filter(
+      (e: any) => e.severity === 'HIGH' || e.severity === 'CRITICAL'
+    );
+
+    const lastSuccess = successEvents.length > 0 ? successEvents[0]?.timestamp : undefined;
+    const lastFailure = failureEvents.length > 0 ? failureEvents[0]?.timestamp : undefined;
+
+    // Calculate consecutive failures from recent errors
+    let consecutiveFailures = 0;
+    for (const error of recentErrors) {
+      if ((error as any).severity === 'HIGH' || (error as any).severity === 'CRITICAL') {
+        consecutiveFailures++;
+      } else {
+        break; // Stop on first success
+      }
+    }
+
+    return {
+      available: this.initialized && circuitState === 'CLOSED',
+      circuitState: circuitState as 'CLOSED' | 'HALF_OPEN' | 'OPEN',
+      initialized: this.initialized,
+      authenticated: this.initialized, // Initialized implies auth succeeded
+      lastSuccess,
+      lastFailure,
+      consecutiveFailures,
+      errorRate,
+      metadata: {
+        providerType: ProviderType.CLAUDE,
+        totalErrors: stats.total,
+        errorsByType: stats.byType,
+        errorsBySeverity: stats.bySeverity,
+      },
+    };
+  }
+
+  /**
+   * VBT-172: Get current rate limit information
+   * Returns rate limit configuration and current usage
+   *
+   * Note: Anthropic doesn't expose rate limit headers in all responses,
+   * so we return documented tier limits and check recent errors for rate limit events.
+   */
+  public getRateLimitInfo(): ProviderRateLimits {
+    // Check for recent rate limit errors
+    const recentErrors = this.errorLogger.getRecentErrors(50);
+    const rateLimitErrors = recentErrors.filter(
+      (e: any) => e.type === 'RATE_LIMIT'
+    );
+    const isRateLimited = rateLimitErrors.length > 0;
+
+    // Get retry info from most recent rate limit error
+    const latestRateLimitError = rateLimitErrors[0];
+    const retryAfter = latestRateLimitError?.context?.retryAfter;
+
+    // Anthropic documented rate limits (Build tier defaults)
+    // https://docs.anthropic.com/en/api/rate-limits
+    return {
+      requestsPerMinute: 50, // Build tier default
+      tokensPerMinute: 50000, // Build tier default (input)
+      tokensPerDay: 1000000, // Build tier default (input)
+      currentRequests: undefined, // Not tracked
+      currentTokens: undefined, // Not tracked
+      windowReset: retryAfter
+        ? new Date(Date.now() + retryAfter * 1000)
+        : undefined,
+      isRateLimited,
+      retryAfter,
+    };
+  }
+
+  /**
+   * VBT-172: Check availability of a specific model
+   * Returns whether model is currently accessible
+   */
+  public checkModelAvailability(modelId: string): ModelAvailability {
+    const modelConfig = getClaudeModelConfig(modelId);
+    const now = new Date();
+
+    if (!modelConfig) {
+      return {
+        modelId,
+        available: false,
+        unavailableReason: 'Model not found in registry',
+        deprecated: false,
+        lastChecked: now,
+      };
+    }
+
+    return {
+      modelId,
+      available: !modelConfig.deprecated,
+      unavailableReason: modelConfig.deprecated ? 'Model is deprecated' : undefined,
+      deprecated: modelConfig.deprecated,
+      lastChecked: now,
+    };
   }
 
   /**

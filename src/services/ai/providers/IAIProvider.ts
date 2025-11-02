@@ -16,6 +16,9 @@ import {
   ProviderType,
   ProviderMetadata,
   ModelConfig,
+  ProviderStatus,
+  ProviderRateLimits,
+  ModelAvailability,
 } from './types';
 
 /**
@@ -187,6 +190,49 @@ export interface IAIProvider {
     inputTokens: number,
     outputTokens: number
   ): number | null;
+
+  /**
+   * VBT-172: Get current provider status
+   * Returns health and availability information
+   *
+   * Contract:
+   * - Must reflect actual current state (not cached)
+   * - Circuit breaker state should be accurate
+   * - Error rates should be calculated from recent history
+   * - Should not make external API calls (read from internal state)
+   *
+   * @returns Current provider status
+   */
+  getProviderStatus(): ProviderStatus;
+
+  /**
+   * VBT-172: Get current rate limit information
+   * Returns rate limit configuration and current usage
+   *
+   * Contract:
+   * - Should reflect provider-specific rate limits
+   * - Usage counters should be current
+   * - Window reset time should be accurate
+   * - Should indicate if currently throttled
+   *
+   * @returns Current rate limit information
+   */
+  getRateLimitInfo(): ProviderRateLimits;
+
+  /**
+   * VBT-172: Check availability of a specific model
+   * Returns whether model is currently accessible
+   *
+   * Contract:
+   * - Must check if model is in available models list
+   * - Should indicate if model is deprecated
+   * - May optionally make API call to verify availability
+   * - Should cache results to avoid excessive API calls
+   *
+   * @param modelId - Model identifier to check
+   * @returns Model availability status
+   */
+  checkModelAvailability(modelId: string): ModelAvailability;
 
   /**
    * Clean up resources
