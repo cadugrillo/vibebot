@@ -8,7 +8,6 @@
  */
 
 import {
-  AIMessage,
   AIResponse,
   SendMessageParams,
   StreamMessageParams,

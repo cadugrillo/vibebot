@@ -5,7 +5,7 @@
  */
 
 import { PrismaClient, Message, MessageRole } from '../generated/prisma';
-import { TokenUsage, CostInfo } from './ai/claude/types';
+import { TokenUsage, CostInfo } from './ai/providers/types';
 import { storeTokenUsage } from './ai/usage-tracking';
 
 const prisma = new PrismaClient();

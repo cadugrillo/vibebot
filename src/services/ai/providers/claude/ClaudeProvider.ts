@@ -21,12 +21,10 @@ import {
 } from '../types';
 import { ProviderError, ProviderErrorType } from '../errors';
 import {
-  CLAUDE_MODELS,
   getAllClaudeModels,
   getClaudeModelConfig,
   getRecommendedClaudeModel,
   isValidClaudeModel,
-  ClaudeModel,
 } from './models';
 import { ClaudeStreamHandler } from './ClaudeStreamHandler';
 import { getClaudeErrorMapper } from './ClaudeErrorMapper';

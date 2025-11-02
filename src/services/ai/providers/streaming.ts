@@ -13,7 +13,6 @@ import {
   StreamCallback,
   TokenUsage,
   AIResponse,
-  ProviderType,
 } from './types';
 import { ProviderError, ProviderErrorType } from './errors';
 

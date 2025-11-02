@@ -4,7 +4,7 @@
  */
 
 import { SystemPromptManager } from '../system-prompts';
-import { ProviderError, ProviderErrorType } from '../../errors';
+import { ProviderError } from '../../errors';
 
 describe('SystemPromptManager', () => {
   describe('Initialization', () => {
@@ -295,7 +295,7 @@ describe('SystemPromptManager', () => {
     it('should update custom preset', () => {
       const manager = new SystemPromptManager();
 
-      const preset = manager.createCustomPreset({
+      manager.createCustomPreset({
         id: 'test',
         name: 'Original',
         description: 'Original',
@@ -326,7 +326,7 @@ describe('SystemPromptManager', () => {
     it('should delete custom preset', () => {
       const manager = new SystemPromptManager();
 
-      const preset = manager.createCustomPreset({
+      manager.createCustomPreset({
         id: 'delete-me',
         name: 'Test',
         description: 'Test',

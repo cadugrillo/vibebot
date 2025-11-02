@@ -59,7 +59,7 @@ export class ClaudeStreamHandler extends BaseStreamHandler {
   /**
    * Handle content_block_stop event from Claude API
    */
-  public handleContentBlockStop(event: Anthropic.ContentBlockStopEvent): void {
+  public handleContentBlockStop(_event: Anthropic.ContentBlockStopEvent): void {
     console.log('Content block stopped');
   }
 
@@ -162,7 +162,7 @@ export class ClaudeStreamHandler extends BaseStreamHandler {
       finishReason: this.stopReason,
       provider: ProviderType.CLAUDE,
       metadata: {
-        modelFamily: modelConfig?.family,
+        modelFamily: (modelConfig?.metadata as any)?.family,
         modelTier: modelConfig?.tier,
       },
     };

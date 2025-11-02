@@ -6,10 +6,7 @@
 import {
   ProviderUtilities,
   createProviderUtilities,
-  createUtilitiesForProvider,
-  createSharedUtilities,
 } from '../ProviderUtilities';
-import { ProviderType } from '../../types';
 import { ProviderError, ProviderErrorType } from '../../errors';
 
 describe('ProviderUtilities', () => {
@@ -72,7 +69,7 @@ describe('ProviderUtilities', () => {
         if (callCount === 1) {
           throw new ProviderError(ProviderErrorType.RATE_LIMIT, 'Rate limited', {
             retryable: true,
-            retryAfter: 0.01,
+            rateLimitInfo: { isRateLimited: true, retryAfter: 1 },
           });
         }
         return 'success';
@@ -153,6 +150,9 @@ describe('ProviderUtilities', () => {
     });
   });
 
+  // Note: Factory functions createUtilitiesForProvider and createSharedUtilities
+  // were removed - use createProviderUtilities() instead
+  /*
   describe('Factory Functions', () => {
     describe('createUtilitiesForProvider', () => {
       it('should create with Claude configuration', () => {
@@ -202,6 +202,7 @@ describe('ProviderUtilities', () => {
       });
     });
   });
+  */
 
   describe('Error Scenarios', () => {
     it('should handle circuit breaker opening', async () => {

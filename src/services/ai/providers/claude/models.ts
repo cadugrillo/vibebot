@@ -9,8 +9,6 @@ import {
   ModelConfig,
   ModelTier,
   ProviderType,
-  ModelCapabilities,
-  ModelPricing,
 } from '../types';
 
 /**

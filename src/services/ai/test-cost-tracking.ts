@@ -16,7 +16,7 @@ import {
   printCostStatistics,
   printModelCostComparison,
 } from './cost-reporting';
-import { ClaudeModel } from './claude/models';
+import { ClaudeModel } from './providers/claude/models';
 
 console.log('='.repeat(70));
 console.log('VBT-161: Cost Tracking System Test Suite');

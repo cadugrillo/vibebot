@@ -37,7 +37,7 @@ describe('RateLimitManager', () => {
         .mockRejectedValueOnce(
           new ProviderError(ProviderErrorType.RATE_LIMIT, 'Rate limited', {
             retryable: true,
-            retryAfter: 0.01, // 10ms
+            rateLimitInfo: { isRateLimited: true, retryAfter: 1 },
           })
         )
         .mockResolvedValue('success');
@@ -183,7 +183,7 @@ describe('RateLimitManager', () => {
           callTime = Date.now();
           throw new ProviderError(ProviderErrorType.RATE_LIMIT, 'Rate limited', {
             retryable: true,
-            retryAfter: 0.05, // 50ms
+            rateLimitInfo: { isRateLimited: true, retryAfter: 1 },
           });
         })
         .mockResolvedValue('success');
@@ -216,6 +216,8 @@ describe('RateLimitManager', () => {
     });
   });
 
+  // Note: getStats method was removed from RateLimitManager
+  /*
   describe('getStats', () => {
     it('should return current retry count', () => {
       const manager = new RateLimitManager({ maxRetries: 3 });
@@ -226,4 +228,5 @@ describe('RateLimitManager', () => {
       expect(stats.maxRetries).toBe(3);
     });
   });
+  */
 });

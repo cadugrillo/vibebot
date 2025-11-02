@@ -6,7 +6,7 @@
  */
 
 import { PrismaClient, Message } from '../../generated/prisma';
-import { TokenUsage, CostInfo, MessageMetadata } from './claude/types';
+import { TokenUsage, CostInfo, MessageMetadata } from './providers/types';
 
 const prisma = new PrismaClient();
 

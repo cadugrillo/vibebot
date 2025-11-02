@@ -7,8 +7,8 @@
  */
 
 import { PrismaClient } from '../../generated/prisma';
-import { getModelConfig, CLAUDE_MODELS } from './claude/models';
-import { MessageMetadata } from './claude/types';
+import { getClaudeModelConfig, CLAUDE_MODELS } from './providers';
+import { MessageMetadata } from './providers/types';
 import { UsageSummary } from './usage-tracking';
 
 const prisma = new PrismaClient();
@@ -330,7 +330,7 @@ export async function getUserCostStatistics(
   if (report.costByModel.size > 0) {
     const modelCosts = Array.from(report.costByModel.entries()).map(([model, data]) => ({
       model,
-      modelName: getModelConfig(model)?.name || model,
+      modelName: getClaudeModelConfig(model)?.name || model,
       cost: data.cost,
     }));
 
@@ -402,7 +402,7 @@ export function estimateCost(
   estimatedInputTokens: number,
   estimatedOutputTokens: number
 ): number | null {
-  const config = getModelConfig(modelId);
+  const config = getClaudeModelConfig(modelId);
   if (!config) return null;
 
   const inputCost = (estimatedInputTokens / 1_000_000) * config.pricing.input;
@@ -474,7 +474,7 @@ export function printConversationCostReport(report: ConversationCostReport): voi
       .sort((a, b) => b[1].cost - a[1].cost);
 
     for (const [model, data] of sortedModels) {
-      const modelConfig = getModelConfig(model);
+      const modelConfig = getClaudeModelConfig(model);
       const modelName = modelConfig?.name || model;
       const percentage = (data.cost / report.summary.totalCost) * 100;
 
@@ -518,7 +518,7 @@ export function printUserCostReport(report: UserCostReport, showTopN: number = 5
       .sort((a, b) => b[1].cost - a[1].cost);
 
     for (const [model, data] of sortedModels) {
-      const modelConfig = getModelConfig(model);
+      const modelConfig = getClaudeModelConfig(model);
       const modelName = modelConfig?.name || model;
       const percentage = (data.cost / report.summary.totalCost) * 100;
 

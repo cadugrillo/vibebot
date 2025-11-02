@@ -50,7 +50,8 @@ export class ClaudeErrorMapper implements ErrorMapper {
     }
 
     if (error instanceof Anthropic.RateLimitError) {
-      const rateLimitInfo = this.parseRateLimitInfo(error);
+      // RateLimitError extends APIError, cast to access headers
+      const rateLimitInfo = this.parseRateLimitInfo(error as InstanceType<typeof Anthropic.APIError>);
 
       return new ProviderError(
         ProviderErrorType.RATE_LIMIT,
@@ -119,7 +120,7 @@ export class ClaudeErrorMapper implements ErrorMapper {
   /**
    * Categorize Anthropic API error by status code
    */
-  private categorizeAPIError(error: Anthropic.APIError): ProviderErrorType {
+  private categorizeAPIError(error: InstanceType<typeof Anthropic.APIError>): ProviderErrorType {
     const status = error.status;
 
     if (!status) {
@@ -170,7 +171,7 @@ export class ClaudeErrorMapper implements ErrorMapper {
   /**
    * Parse rate limit information from error
    */
-  private parseRateLimitInfo(error: Anthropic.RateLimitError): RateLimitInfo {
+  private parseRateLimitInfo(error: InstanceType<typeof Anthropic.APIError>): RateLimitInfo {
     const rateLimitInfo: RateLimitInfo = {
       isRateLimited: true,
     };
@@ -178,15 +179,15 @@ export class ClaudeErrorMapper implements ErrorMapper {
     // Try to extract rate limit headers
     if (error.headers) {
       // Retry-After header (seconds until retry allowed)
-      const retryAfter = error.headers['retry-after'];
+      const retryAfter = error.headers.get('retry-after');
       if (retryAfter) {
         rateLimitInfo.retryAfter = parseInt(retryAfter, 10);
       }
 
       // X-RateLimit-* headers
-      const limit = error.headers['x-ratelimit-limit'];
-      const remaining = error.headers['x-ratelimit-remaining'];
-      const reset = error.headers['x-ratelimit-reset'];
+      const limit = error.headers.get('x-ratelimit-limit');
+      const remaining = error.headers.get('x-ratelimit-remaining');
+      const reset = error.headers.get('x-ratelimit-reset');
 
       if (limit) {
         rateLimitInfo.limit = parseInt(limit, 10);
@@ -203,9 +204,9 @@ export class ClaudeErrorMapper implements ErrorMapper {
       }
 
       // Anthropic-specific headers (if any)
-      const requestsPerMinute = error.headers['anthropic-ratelimit-requests-limit'];
-      const tokensPerMinute = error.headers['anthropic-ratelimit-tokens-limit'];
-      const tokensPerDay = error.headers['anthropic-ratelimit-tokens-daily-limit'];
+      const requestsPerMinute = error.headers.get('anthropic-ratelimit-requests-limit');
+      const tokensPerMinute = error.headers.get('anthropic-ratelimit-tokens-limit');
+      const tokensPerDay = error.headers.get('anthropic-ratelimit-tokens-daily-limit');
 
       if (requestsPerMinute) {
         rateLimitInfo.requestsPerMinute = parseInt(requestsPerMinute, 10);

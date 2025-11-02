@@ -24,11 +24,11 @@ describe('ErrorLogger', () => {
 
       const errors = logger.getAllErrors();
       expect(errors).toHaveLength(1);
-      expect(errors[0].type).toBe(ProviderErrorType.AUTHENTICATION);
-      expect(errors[0].message).toBe('Invalid API key');
-      expect(errors[0].retryable).toBe(false);
-      expect(errors[0].statusCode).toBe(401);
-      expect(errors[0].userId).toBe('user-123');
+      expect(errors[0]!.type).toBe(ProviderErrorType.AUTHENTICATION);
+      expect(errors[0]!.message).toBe('Invalid API key');
+      expect(errors[0]!.retryable).toBe(false);
+      expect(errors[0]!.statusCode).toBe(401);
+      expect(errors[0]!.userId).toBe('user-123');
     });
 
     it('should log generic Error', () => {
@@ -39,9 +39,9 @@ describe('ErrorLogger', () => {
 
       const errors = logger.getAllErrors();
       expect(errors).toHaveLength(1);
-      expect(errors[0].type).toBe(ProviderErrorType.UNKNOWN);
-      expect(errors[0].message).toBe('Something went wrong');
-      expect(errors[0].severity).toBe(ErrorSeverity.MEDIUM);
+      expect(errors[0]!.type).toBe(ProviderErrorType.UNKNOWN);
+      expect(errors[0]!.message).toBe('Something went wrong');
+      expect(errors[0]!.severity).toBe(ErrorSeverity.MEDIUM);
     });
 
     it('should include context in log entry', () => {
@@ -58,11 +58,11 @@ describe('ErrorLogger', () => {
       logger.logError(error, context);
 
       const errors = logger.getAllErrors();
-      expect(errors[0].userId).toBe('user-123');
-      expect(errors[0].conversationId).toBe('conv-456');
-      expect(errors[0].operation).toBe('sendMessage');
-      expect(errors[0].modelId).toBe('claude-sonnet-4.5');
-      expect(errors[0].provider).toBe(ProviderType.CLAUDE);
+      expect(errors[0]!.userId).toBe('user-123');
+      expect(errors[0]!.conversationId).toBe('conv-456');
+      expect(errors[0]!.operation).toBe('sendMessage');
+      expect(errors[0]!.modelId).toBe('claude-sonnet-4.5');
+      expect(errors[0]!.provider).toBe(ProviderType.CLAUDE);
     });
 
     it('should generate unique IDs for each error', () => {
@@ -73,7 +73,7 @@ describe('ErrorLogger', () => {
       logger.logError(error);
 
       const errors = logger.getAllErrors();
-      expect(errors[0].id).not.toBe(errors[1].id);
+      expect(errors[0]!.id).not.toBe(errors[1]!.id);
     });
 
     it('should record timestamp for each error', () => {
@@ -85,9 +85,9 @@ describe('ErrorLogger', () => {
 
       const after = new Date();
       const errors = logger.getAllErrors();
-      expect(errors[0].timestamp).toBeInstanceOf(Date);
-      expect(errors[0].timestamp.getTime()).toBeGreaterThanOrEqual(before.getTime());
-      expect(errors[0].timestamp.getTime()).toBeLessThanOrEqual(after.getTime());
+      expect(errors[0]!.timestamp).toBeInstanceOf(Date);
+      expect(errors[0]!.timestamp.getTime()).toBeGreaterThanOrEqual(before.getTime());
+      expect(errors[0]!.timestamp.getTime()).toBeLessThanOrEqual(after.getTime());
     });
   });
 
@@ -196,8 +196,8 @@ describe('ErrorLogger', () => {
 
       const recent = logger.getRecentErrors(3);
       expect(recent).toHaveLength(3);
-      expect(recent[0].message).toBe('Error 9'); // Most recent first
-      expect(recent[2].message).toBe('Error 7');
+      expect(recent[0]!.message).toBe('Error 9'); // Most recent first
+      expect(recent[2]!.message).toBe('Error 7');
     });
 
     it('should filter errors by severity', () => {
@@ -214,7 +214,7 @@ describe('ErrorLogger', () => {
 
       const highSeverity = logger.getErrorsBySeverity(ErrorSeverity.HIGH);
       expect(highSeverity).toHaveLength(1);
-      expect(highSeverity[0].message).toBe('High');
+      expect(highSeverity[0]!.message).toBe('High');
     });
 
     it('should filter errors by type', () => {
@@ -236,7 +236,7 @@ describe('ErrorLogger', () => {
 
       const claudeErrors = logger.getErrorsByProvider(ProviderType.CLAUDE);
       expect(claudeErrors).toHaveLength(1);
-      expect(claudeErrors[0].message).toBe('Claude error');
+      expect(claudeErrors[0]!.message).toBe('Claude error');
     });
   });
 
@@ -250,7 +250,7 @@ describe('ErrorLogger', () => {
 
       const errors = logger.getAllErrors();
       expect(errors).toHaveLength(5);
-      expect(errors[0].message).toBe('Error 9'); // Most recent kept
+      expect(errors[0]!.message).toBe('Error 9'); // Most recent kept
     });
 
     it('should allow changing maxEntries', () => {

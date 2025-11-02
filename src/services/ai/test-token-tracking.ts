@@ -2,6 +2,9 @@
  * Token Tracking Integration Test
  * VBT-158: Test token counting and usage tracking end-to-end
  *
+ * ⚠️  DEPRECATED: This test file uses the old ClaudeService which has been removed.
+ * Use the new AI provider tests in providers/claude/__tests__/ instead.
+ *
  * This script demonstrates the complete flow:
  * 1. User sends a message
  * 2. Claude API responds with streaming
@@ -11,23 +14,28 @@
  * Run with: npx ts-node src/services/ai/test-token-tracking.ts
  */
 
-import { getClaudeService } from './claude/ClaudeService';
-import { getMessageService } from '../message.service';
-import {
-  getMessageUsage,
-  getConversationUsage,
-  getUserUsage,
-  getConversationUsageStats,
-  verifyMessageUsage,
-} from './usage-tracking';
-import { PrismaClient } from '../../generated/prisma';
+// DEPRECATED: ClaudeService has been replaced with the new provider system
+// import { getClaudeService } from './claude/ClaudeService';
+// import { getMessageService } from '../message.service';
+// import {
+//   getMessageUsage,
+//   getConversationUsage,
+//   getUserUsage,
+//   getConversationUsageStats,
+//   verifyMessageUsage,
+// } from './usage-tracking';
+// import { PrismaClient } from '../../generated/prisma';
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient();
 
 /**
  * Test the complete token tracking flow
+ * @deprecated This test uses the old ClaudeService. Use new provider tests instead.
  */
 async function testTokenTracking() {
+  throw new Error('DEPRECATED: This test uses the old ClaudeService which has been removed. Use tests in providers/claude/__tests__/ instead.');
+
+  /* DEPRECATED CODE BELOW - Kept for reference
   console.log('\n🧪 VBT-158: Token Tracking Integration Test\n');
   console.log('='.repeat(60));
 
@@ -66,7 +74,8 @@ async function testTokenTracking() {
 
     // Step 3: Get AI response with streaming
     console.log('\n🤖 Step 3: Getting AI response from Claude API...');
-    const claudeService = getClaudeService();
+    // DEPRECATED: getClaudeService has been removed
+    throw new Error('DEPRECATED: This test uses the old ClaudeService. Use new provider tests instead.');
 
     // Test connection first
     const isConnected = await claudeService.testConnection();
@@ -188,12 +197,16 @@ async function testTokenTracking() {
   } finally {
     await prisma.$disconnect();
   }
+  */ // End of deprecated code
 }
 
 /**
  * Test usage aggregation with multiple messages
+ * @deprecated This test uses the old ClaudeService. Use new provider tests instead.
  */
 async function testMultipleMessages() {
+  throw new Error('DEPRECATED: This test uses the old ClaudeService which has been removed. Use tests in providers/claude/__tests__/ instead.');
+  /* DEPRECATED CODE BELOW - Kept for reference
   console.log('\n🧪 Testing usage aggregation with multiple messages\n');
   console.log('='.repeat(60));
 
@@ -285,6 +298,7 @@ async function testMultipleMessages() {
   } finally {
     await prisma.$disconnect();
   }
+  */ // End of deprecated code
 }
 
 // Main execution

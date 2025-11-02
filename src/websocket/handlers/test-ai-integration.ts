@@ -9,9 +9,7 @@
 import 'dotenv/config';
 
 import { AIIntegrationHandler } from './aiIntegration';
-import { VibeWebSocketServer } from '../server';
-import { MessageEventType, MessageStreamEvent } from './messageHandlers';
-import * as http from 'http';
+import { MessageEventType } from './messageHandlers';
 
 // Mock WebSocket server for testing
 class MockWebSocketServer {
@@ -59,9 +57,10 @@ function assertEquals(actual: any, expected: any, message: string): void {
   }
 }
 
-async function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+// Commented out - not used in current tests
+// async function sleep(ms: number): Promise<void> {
+//   return new Promise(resolve => setTimeout(resolve, ms));
+// }
 
 // Test scenarios
 async function testInitialization(): Promise<void> {
