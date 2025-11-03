@@ -55,3 +55,39 @@ export const apiRateLimiter = rateLimit({
   skipSuccessfulRequests: false,
   skipFailedRequests: false,
 });
+
+/**
+ * Rate limiter for conversation creation endpoints
+ * Limits: 10 requests per minute
+ * Purpose: Prevent spam conversation creation
+ */
+export const conversationCreateRateLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 10, // Limit each IP to 10 requests per minute
+  message: {
+    error: 'Too many conversation creation requests',
+    message: 'Please try again after 1 minute',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  skipFailedRequests: false,
+});
+
+/**
+ * Rate limiter for conversation read endpoints
+ * Limits: 30 requests per minute
+ * Purpose: Prevent abuse while allowing normal browsing
+ */
+export const conversationReadRateLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // Limit each IP to 30 requests per minute
+  message: {
+    error: 'Too many requests',
+    message: 'Please try again after 1 minute',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  skipFailedRequests: false,
+});

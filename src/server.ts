@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import authRoutes from './routes/auth.routes';
 import adminRoutes from './routes/admin.routes';
+import conversationRoutes from './routes/conversation.routes';
 import { VibeWebSocketServer } from './websocket/server';
 
 // Load environment variables
@@ -43,6 +44,7 @@ app.get('/health', (_req: Request, res: Response) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/conversations', conversationRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

@@ -48,8 +48,11 @@ export function validateRequest<T extends z.ZodTypeAny>(schema: T) {
 export function validateQuery<T extends z.ZodTypeAny>(schema: T) {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      const validatedData = schema.parse(req.query);
-      req.query = validatedData as any;
+      const validatedData = schema.parse(req.query) as Record<string, any>;
+      // Can't directly assign to req.query (read-only), so copy properties
+      Object.keys(validatedData).forEach((key) => {
+        (req.query as any)[key] = validatedData[key];
+      });
       next();
     } catch (error) {
       if (error instanceof ZodError) {
