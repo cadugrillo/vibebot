@@ -24,7 +24,8 @@
     "test:provider-factory": "tsx src/services/ai/providers/__tests__/test-factory.ts",
     "test:provider-fallback": "tsx src/services/ai/providers/__tests__/test-fallback.ts",
     "test:provider-unit": "npm run test:provider-factory && npm run test:provider-fallback",
-    "test:conversation-api": "tsx src/routes/__tests__/conversation-api.integration.test.ts"
+    "test:conversation-api": "tsx src/routes/__tests__/conversation-api.integration.test.ts",
+    "test:message-api": "tsx src/routes/__tests__/message-api.integration.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

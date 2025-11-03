@@ -2,27 +2,28 @@
  * Message Service
  * Handles message CRUD operations with token usage tracking integration
  * VBT-158: Integrates usage tracking with message creation
+ * VBT-186: Enhanced with pagination, metadata updates, and transaction support
  */
 
 import { PrismaClient, Message, MessageRole } from '../generated/prisma';
 import { TokenUsage, CostInfo } from './ai/providers/types';
 import { storeTokenUsage } from './ai/usage-tracking';
+import {
+  MessageMetadata,
+  MessageResponseDTO,
+  CreateUserMessageParams,
+  CreateAssistantMessageParams as NewCreateAssistantMessageParams,
+  UpdateMessageMetadataParams,
+} from '../types/message.types';
+import { NormalizedPaginationParams } from '../utils/pagination.utils';
 
 const prisma = new PrismaClient();
 
 /**
- * Parameters for creating a user message
+ * Legacy parameters for creating an assistant message (for backward compatibility)
+ * @deprecated Use CreateAssistantMessageParams from message.types.ts instead
  */
-export interface CreateUserMessageParams {
-  conversationId: string;
-  userId: string;
-  content: string;
-}
-
-/**
- * Parameters for creating an assistant message
- */
-export interface CreateAssistantMessageParams {
+export interface LegacyCreateAssistantMessageParams {
   conversationId: string;
   content: string;
   tokenUsage: TokenUsage;
@@ -70,38 +71,58 @@ export class MessageService {
   /**
    * Create an assistant message with token usage tracking
    * VBT-158: This is where token usage gets stored in the database
+   * VBT-186: Enhanced to support new MessageMetadata type
    *
    * @param params - Assistant message parameters including token usage
    * @returns Created message with token metadata
    */
   async createAssistantMessage(
-    params: CreateAssistantMessageParams
+    params: LegacyCreateAssistantMessageParams | NewCreateAssistantMessageParams
   ): Promise<Message> {
-    const { conversationId, content, tokenUsage, cost, model, stopReason } = params;
+    // Check if using new format or legacy format
+    if ('metadata' in params) {
+      // New format with MessageMetadata
+      const { conversationId, content, metadata } = params;
 
-    // First create the message without metadata
-    const message = await prisma.message.create({
-      data: {
-        conversationId,
-        role: MessageRole.ASSISTANT,
-        content,
-        // Note: userId is null for assistant messages
-      },
-    });
+      const message = await prisma.message.create({
+        data: {
+          conversationId,
+          role: MessageRole.ASSISTANT,
+          content,
+          metadata: metadata as any, // Prisma stores as Json
+        },
+      });
 
-    console.log(`✅ Assistant message created: ${message.id}`);
+      console.log(`✅ Assistant message created: ${message.id}`);
+      return message;
+    } else {
+      // Legacy format - convert to new format
+      const { conversationId, content, tokenUsage, cost, model, stopReason } = params;
 
-    // Then update it with token usage metadata using our tracking service
-    // VBT-158: Integration point for token tracking
-    const updatedMessage = await storeTokenUsage(
-      message.id,
-      tokenUsage,
-      cost,
-      model,
-      stopReason
-    );
+      // First create the message without metadata
+      const message = await prisma.message.create({
+        data: {
+          conversationId,
+          role: MessageRole.ASSISTANT,
+          content,
+          // Note: userId is null for assistant messages
+        },
+      });
 
-    return updatedMessage;
+      console.log(`✅ Assistant message created: ${message.id}`);
+
+      // Then update it with token usage metadata using our tracking service
+      // VBT-158: Integration point for token tracking
+      const updatedMessage = await storeTokenUsage(
+        message.id,
+        tokenUsage,
+        cost,
+        model,
+        stopReason
+      );
+
+      return updatedMessage;
+    }
   }
 
   /**
@@ -140,20 +161,43 @@ export class MessageService {
   }
 
   /**
-   * Get all messages for a conversation
+   * Get all messages for a conversation with pagination support
+   * VBT-186: Enhanced with pagination
    *
    * @param conversationId - Conversation ID
-   * @param limit - Maximum number of messages to return
+   * @param paginationParams - Pagination parameters (optional)
    * @returns Array of messages ordered by creation time
    */
   async getConversationMessages(
     conversationId: string,
-    limit: number = 100
+    paginationParams?: NormalizedPaginationParams
   ): Promise<Message[]> {
+    if (paginationParams) {
+      return await prisma.message.findMany({
+        where: { conversationId },
+        orderBy: { createdAt: 'asc' },
+        skip: paginationParams.skip,
+        take: paginationParams.take,
+      });
+    }
+
+    // Default: return all messages (for backward compatibility)
     return await prisma.message.findMany({
       where: { conversationId },
       orderBy: { createdAt: 'asc' },
-      take: limit,
+    });
+  }
+
+  /**
+   * Count messages in a conversation
+   * VBT-186: For pagination support
+   *
+   * @param conversationId - Conversation ID
+   * @returns Total count of messages
+   */
+  async countConversationMessages(conversationId: string): Promise<number> {
+    return await prisma.message.count({
+      where: { conversationId },
     });
   }
 
@@ -197,6 +241,96 @@ export class MessageService {
       where: { id: messageId },
       data: { content },
     });
+  }
+
+  /**
+   * Update message metadata
+   * VBT-186: New method for updating message metadata
+   *
+   * @param params - Metadata update parameters
+   * @returns Updated message
+   */
+  async updateMessageMetadata(
+    params: UpdateMessageMetadataParams
+  ): Promise<Message> {
+    const { messageId, metadata } = params;
+
+    // Fetch current metadata
+    const currentMessage = await prisma.message.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!currentMessage) {
+      throw new Error(`Message ${messageId} not found`);
+    }
+
+    // Merge with existing metadata
+    const currentMetadata = (currentMessage.metadata as MessageMetadata) || {};
+    const updatedMetadata = {
+      ...currentMetadata,
+      ...metadata,
+    };
+
+    return await prisma.message.update({
+      where: { id: messageId },
+      data: { metadata: updatedMetadata as any },
+    });
+  }
+
+  /**
+   * Create user and assistant message pair atomically
+   * VBT-186: Transaction support for atomic operations
+   *
+   * @param userParams - User message parameters
+   * @param assistantParams - Assistant message parameters
+   * @returns Tuple of [userMessage, assistantMessage]
+   */
+  async createMessagePair(
+    userParams: CreateUserMessageParams,
+    assistantParams: NewCreateAssistantMessageParams
+  ): Promise<[Message, Message]> {
+    return await prisma.$transaction(async (tx) => {
+      // Create user message
+      const userMessage = await tx.message.create({
+        data: {
+          conversationId: userParams.conversationId,
+          userId: userParams.userId,
+          role: MessageRole.USER,
+          content: userParams.content,
+        },
+      });
+
+      // Create assistant message
+      const assistantMessage = await tx.message.create({
+        data: {
+          conversationId: assistantParams.conversationId,
+          role: MessageRole.ASSISTANT,
+          content: assistantParams.content,
+          metadata: assistantParams.metadata as any,
+        },
+      });
+
+      return [userMessage, assistantMessage];
+    });
+  }
+
+  /**
+   * Format a message to DTO format
+   * VBT-186: Utility for converting database messages to DTOs
+   *
+   * @param message - Database message
+   * @returns Message DTO
+   */
+  formatMessageDTO(message: Message): MessageResponseDTO {
+    return {
+      id: message.id,
+      conversationId: message.conversationId,
+      userId: message.userId,
+      role: message.role,
+      content: message.content,
+      metadata: (message.metadata as MessageMetadata) || null,
+      createdAt: message.createdAt,
+    };
   }
 }
 
