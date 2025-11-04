@@ -23,3 +23,15 @@ export interface MessageProps {
   showAvatar?: boolean;
   isStreaming?: boolean;
 }
+
+export interface MessageInputProps {
+  onSend: (content: string, files?: File[]) => void;
+  onTypingStart?: () => void;
+  onTypingStop?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  placeholder?: string;
+  maxLength?: number;
+  showCharacterCount?: boolean;
+  allowFileUpload?: boolean;
+}

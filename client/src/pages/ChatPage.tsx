@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MainLayout } from '@/components/layout';
 import { Sidebar } from '@/components/sidebar';
-import { EmptyState, MessageList } from '@/components/chat';
+import { EmptyState, MessageList, MessageInput } from '@/components/chat';
 import type { MessageType } from '@/components/chat';
 import { ChatSkeleton, SidebarSkeleton } from '@/components/loading';
 import { Toaster } from '@/components/ui/sonner';
+import { toast } from 'sonner';
+import { getWebSocketClient, type WebSocketClient, type ConnectionState } from '@/lib/websocket';
 
 const SIDEBAR_COLLAPSED_KEY = 'vibebot-sidebar-collapsed';
 
@@ -121,11 +123,239 @@ export default function ChatPage() {
     return saved ? JSON.parse(saved) : false;
   });
   const [selectedConversationId, setSelectedConversationId] = useState<string>('1');
+  const [messages, setMessages] = useState<MessageType[]>(MOCK_MESSAGES);
+  const [isSending, setIsSending] = useState(false);
+  const [isTyping, setIsTyping] = useState(false); // Track if others are typing
+
+  // WebSocket state
+  const wsClient = useRef<WebSocketClient | null>(null);
+  const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
+  const [isConnected, setIsConnected] = useState(false);
+
+  // Log connection state for debugging (will be used in UI in VBT-225)
+  useEffect(() => {
+    console.log('[WebSocket] Connection state:', connectionState, '| Connected:', isConnected);
+  }, [connectionState, isConnected]);
 
   // Persist collapsed state to localStorage
   useEffect(() => {
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, JSON.stringify(sidebarCollapsed));
   }, [sidebarCollapsed]);
+
+  // Initialize WebSocket connection
+  useEffect(() => {
+    console.log('[WebSocket] Initializing connection...');
+
+    // Get or create WebSocket client instance
+    if (!wsClient.current) {
+      wsClient.current = getWebSocketClient({
+        url: import.meta.env.VITE_WS_URL || 'ws://localhost:5000/ws',
+        autoConnect: false,
+      });
+    }
+
+    const client = wsClient.current;
+
+    // Setup connection event listeners
+    const handleConnectionEstablished = () => {
+      console.log('[WebSocket] Connection established');
+      setConnectionState('connected');
+      toast.info('Connecting to server...');
+    };
+
+    const handleConnectionAuthenticated = (data: { connectionId: string }) => {
+      console.log('[WebSocket] Authenticated:', data.connectionId);
+      setConnectionState('authenticated');
+      setIsConnected(true);
+      toast.success('Connected to server');
+    };
+
+    const handleConnectionDisconnected = (data: { code: number; reason: string }) => {
+      console.log('[WebSocket] Disconnected:', data.code, data.reason);
+      setConnectionState('disconnected');
+      setIsConnected(false);
+      toast.error('Disconnected from server');
+    };
+
+    const handleConnectionError = (data: { message: string; code?: string }) => {
+      console.error('[WebSocket] Connection error:', data.message, data.code);
+      setConnectionState('error');
+      setIsConnected(false);
+      toast.error(`Connection error: ${data.message}`);
+    };
+
+    const handleStateChange = (data: { previousState: ConnectionState; currentState: ConnectionState }) => {
+      console.log('[WebSocket] State change:', data.previousState, '→', data.currentState);
+      setConnectionState(data.currentState);
+    };
+
+    // Message event handlers
+    const handleMessageAck = (data: { messageId: string; status: string; error?: string }) => {
+      console.log('[Message] Ack received:', data.messageId, data.status);
+
+      if (data.status === 'error') {
+        // Handle error
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === data.messageId
+              ? { ...msg, status: 'error' as const, error: data.error || 'Unknown error' }
+              : msg
+          )
+        );
+        setIsSending(false);
+        toast.error(data.error || 'Failed to send message');
+      } else if (data.status === 'delivered') {
+        // Message successfully delivered
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === data.messageId ? { ...msg, status: 'sent' as const } : msg
+          )
+        );
+        setIsSending(false);
+        toast.success('Message sent');
+      }
+    };
+
+    const handleMessageReceive = (data: {
+      messageId: string;
+      conversationId: string;
+      content: string;
+      userId: string;
+      timestamp: string;
+    }) => {
+      console.log('[Message] Received:', data.messageId, 'from user:', data.userId);
+
+      // Only add message if it's for the current conversation
+      if (data.conversationId === selectedConversationId) {
+        // Check if message already exists (avoid duplicates)
+        setMessages((prev) => {
+          const exists = prev.some((msg) => msg.id === data.messageId);
+          if (exists) {
+            console.log('[Message] Duplicate message, skipping:', data.messageId);
+            return prev;
+          }
+
+          // Add new message
+          return [
+            ...prev,
+            {
+              id: data.messageId,
+              role: 'user' as const,
+              content: data.content,
+              timestamp: new Date(data.timestamp),
+              status: 'sent' as const,
+            },
+          ];
+        });
+      }
+    };
+
+    const handleMessageStream = (data: {
+      messageId: string;
+      conversationId: string;
+      content: string;
+      isComplete: boolean;
+      timestamp: string;
+    }) => {
+      console.log('[Message] Stream chunk:', data.messageId, 'complete:', data.isComplete);
+
+      // Only process if it's for the current conversation
+      if (data.conversationId === selectedConversationId) {
+        setMessages((prev) => {
+          // Check if this message already exists
+          const existingIndex = prev.findIndex((msg) => msg.id === data.messageId);
+
+          if (existingIndex === -1) {
+            // First stream chunk - create new AI message
+            console.log('[Message] Creating new streaming message:', data.messageId);
+            return [
+              ...prev,
+              {
+                id: data.messageId,
+                role: 'assistant' as const,
+                content: data.content,
+                timestamp: new Date(data.timestamp),
+                status: data.isComplete ? 'sent' as const : 'streaming' as const,
+              },
+            ];
+          } else {
+            // Subsequent chunks - update existing message
+            console.log('[Message] Updating streaming message:', data.messageId, 'length:', data.content.length);
+            return prev.map((msg, index) =>
+              index === existingIndex
+                ? {
+                    ...msg,
+                    content: data.content, // Replace entire content (cumulative, not delta)
+                    status: data.isComplete ? 'sent' as const : 'streaming' as const,
+                  }
+                : msg
+            );
+          }
+        });
+
+        // Show completion toast when streaming finishes
+        if (data.isComplete) {
+          console.log('[Message] Streaming complete:', data.messageId);
+        }
+      }
+    };
+
+    // Typing event handlers
+    const handleTypingStart = (data: { userId: string; conversationId: string }) => {
+      console.log('[Typing] User started typing:', data.userId, 'in conversation:', data.conversationId);
+
+      // Only show typing indicator for current conversation
+      if (data.conversationId === selectedConversationId) {
+        setIsTyping(true);
+      }
+    };
+
+    const handleTypingStop = (data: { userId: string; conversationId: string }) => {
+      console.log('[Typing] User stopped typing:', data.userId, 'in conversation:', data.conversationId);
+
+      // Hide typing indicator for current conversation
+      if (data.conversationId === selectedConversationId) {
+        setIsTyping(false);
+      }
+    };
+
+    // Register event listeners
+    client.on('connection:established', handleConnectionEstablished);
+    client.on('connection:authenticated', handleConnectionAuthenticated);
+    client.on('connection:disconnected', handleConnectionDisconnected);
+    client.on('connection:error', handleConnectionError);
+    client.on('state:change', handleStateChange);
+    client.on('message:ack', handleMessageAck);
+    client.on('message:receive', handleMessageReceive);
+    client.on('message:stream', handleMessageStream);
+    client.on('typing:start', handleTypingStart);
+    client.on('typing:stop', handleTypingStop);
+
+    // Connect to WebSocket server
+    console.log('[WebSocket] Connecting to server...');
+    client.connect();
+
+    // Cleanup on unmount
+    return () => {
+      console.log('[WebSocket] Cleaning up connection...');
+
+      // Remove event listeners
+      client.off('connection:established', handleConnectionEstablished);
+      client.off('connection:authenticated', handleConnectionAuthenticated);
+      client.off('connection:disconnected', handleConnectionDisconnected);
+      client.off('connection:error', handleConnectionError);
+      client.off('state:change', handleStateChange);
+      client.off('message:ack', handleMessageAck);
+      client.off('message:receive', handleMessageReceive);
+      client.off('message:stream', handleMessageStream);
+      client.off('typing:start', handleTypingStart);
+      client.off('typing:stop', handleTypingStop);
+
+      // Disconnect WebSocket
+      client.disconnect();
+      wsClient.current = null;
+    };
+  }, []); // Empty dependency array - run once on mount
 
   const toggleSidebarCollapsed = () => {
     setSidebarCollapsed((prev: boolean) => !prev);
@@ -172,6 +402,92 @@ export default function ChatPage() {
     // TODO: Implement export conversation functionality
   };
 
+  const handleSendMessage = (content: string, files?: File[]) => {
+    console.log('[Message] Sending:', content, files);
+
+    // Check if WebSocket is connected
+    if (!isConnected || !wsClient.current) {
+      toast.error('Not connected to server. Please wait...');
+      console.error('[Message] Cannot send - WebSocket not connected');
+      return;
+    }
+
+    // Generate unique message ID
+    const messageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+
+    // Create user message with 'sending' status
+    const userMessage: MessageType = {
+      id: messageId,
+      role: 'user',
+      content,
+      timestamp: new Date(),
+      status: 'sending',
+    };
+
+    // Add user message to UI
+    setMessages((prev) => [...prev, userMessage]);
+    setIsSending(true);
+
+    // Send via WebSocket
+    try {
+      wsClient.current.send('message:send', {
+        messageId,
+        conversationId: selectedConversationId,
+        content,
+        timestamp: new Date().toISOString(),
+      });
+
+      console.log('[Message] Sent via WebSocket:', messageId);
+    } catch (error) {
+      console.error('[Message] Failed to send:', error);
+
+      // Update message status to error
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId
+            ? { ...msg, status: 'error' as const, error: 'Failed to send message' }
+            : msg
+        )
+      );
+      setIsSending(false);
+      toast.error('Failed to send message');
+    }
+  };
+
+  const handleTypingStart = () => {
+    // Only send if WebSocket is connected
+    if (!isConnected || !wsClient.current) {
+      return;
+    }
+
+    try {
+      wsClient.current.send('typing:start', {
+        conversationId: selectedConversationId,
+        timestamp: new Date().toISOString(),
+      });
+      console.log('[Typing] Sent typing:start event');
+    } catch (error) {
+      console.error('[Typing] Failed to send typing:start:', error);
+    }
+  };
+
+  const handleTypingStop = () => {
+    // Only send if WebSocket is connected
+    if (!isConnected || !wsClient.current) {
+      return;
+    }
+
+    try {
+      wsClient.current.send('typing:stop', {
+        conversationId: selectedConversationId,
+        timestamp: new Date().toISOString(),
+      });
+      console.log('[Typing] Sent typing:stop event');
+    } catch (error) {
+      console.error('[Typing] Failed to send typing:stop:', error);
+    }
+  };
+
   // Get selected conversation title
   const selectedConversation = PLACEHOLDER_CONVERSATIONS.find(
     (conv) => conv.id === selectedConversationId
@@ -205,11 +521,30 @@ export default function ChatPage() {
   const mainContent = isLoading ? (
     <ChatSkeleton />
   ) : selectedConversationId ? (
-    <MessageList
-      messages={MOCK_MESSAGES}
-      onRetry={(id) => console.log('Retry message:', id)}
-      onCopy={(content) => console.log('Copied:', content)}
-    />
+    <div className="flex flex-col h-full">
+      {/* Scrollable message area */}
+      <div className="flex-1 overflow-y-auto">
+        <MessageList
+          messages={messages}
+          isTyping={isTyping}
+          onRetry={(id) => console.log('Retry message:', id)}
+          onCopy={(content) => console.log('Copied:', content)}
+        />
+      </div>
+
+      {/* Sticky input at bottom */}
+      <div className="sticky bottom-0 w-full bg-background">
+        <MessageInput
+          onSend={handleSendMessage}
+          onTypingStart={handleTypingStart}
+          onTypingStop={handleTypingStop}
+          loading={isSending}
+          placeholder="Type a message..."
+          showCharacterCount={true}
+          allowFileUpload={false}
+        />
+      </div>
+    </div>
   ) : (
     <EmptyState
       title="Welcome to VibeBot"
@@ -229,6 +564,8 @@ export default function ChatPage() {
         onSettings={handleSettings}
         sidebarCollapsed={sidebarCollapsed}
         conversationTitle={conversationTitle}
+        connectionState={connectionState}
+        isConnected={isConnected}
       >
         {mainContent}
       </MainLayout>

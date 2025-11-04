@@ -240,11 +240,11 @@ export class AIIntegrationHandler {
         } else if (event.type === 'delta' && event.content) {
           fullResponse += event.content;
 
-          // Broadcast stream chunk to conversation
+          // Broadcast stream chunk to conversation (CUMULATIVE content, not delta)
           const streamEvent: MessageStreamEvent = {
             type: MessageEventType.STREAM,
             conversationId,
-            content: event.content,
+            content: fullResponse, // Send cumulative content
             messageId: aiMessageId,
             isComplete: false,
             timestamp: new Date().toISOString(),
@@ -260,11 +260,11 @@ export class AIIntegrationHandler {
             content: fullResponse,
           });
 
-          // Send completion event
+          // Send completion event with final content
           const completeEvent: MessageStreamEvent = {
             type: MessageEventType.STREAM,
             conversationId,
-            content: '', // Empty for completion
+            content: fullResponse, // Send final cumulative content
             messageId: aiMessageId,
             isComplete: true,
             timestamp: new Date().toISOString(),

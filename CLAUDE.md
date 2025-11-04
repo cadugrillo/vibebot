@@ -184,9 +184,20 @@ Completed:
   - ✅ VBT-219: Message List Container (auto-scroll, scroll-to-bottom button, message grouping)
   - ✅ VBT-220: Integration and Testing (MessageList integrated in ChatPage, mock messages, production build passing)
 
+- ✅ VBT-36: Message Input Component (10/10 sub-tasks complete - ✅ DONE!)
+  - ✅ VBT-201: Install shadcn/ui Textarea and create MessageInput structure
+  - ✅ VBT-202: Auto-expanding textarea (60px min, 200px max with scroll)
+  - ✅ VBT-203: Send button with enabled/disabled state and loading spinner
+  - ✅ VBT-204: Keyboard shortcuts (Enter, Shift+Enter, Ctrl/Cmd+Enter)
+  - ✅ VBT-205: Character count with color-coded warnings (gray/yellow/red)
+  - ✅ VBT-206: File upload button with image paste support (validation, previews)
+  - ✅ VBT-207: Loading state (disabled input, spinner, opacity, wait cursor)
+  - ✅ VBT-208: Clear input after send (content, files, errors, height reset, focus)
+  - ✅ VBT-209: ChatPage integration (sticky bottom, handleSendMessage, message state)
+  - ✅ VBT-210: Testing and verification (comprehensive test plan, production build)
+
 Remaining Phase 4 Tasks:
-- ⏳ VBT-36: Message Input Component (10 sub-tasks: VBT-201-210 - next priority)
-- ⏳ VBT-37: Real-time Message Streaming UI
+- ⏳ VBT-37: Real-time Message Streaming UI (next priority)
 
 See `development_tasks.md` for the complete development sequence.
 
@@ -194,13 +205,13 @@ See `development_tasks.md` for the complete development sequence.
 
 ## 📍 Where to Pick Up
 
-**Last Completed**: VBT-35 - Message Display Component (✅ COMPLETE! All 10 subtasks done)
+**Last Completed**: VBT-36 - Message Input Component (✅ COMPLETE! All 10 subtasks done)
 
-**Next Task**: VBT-36 - Message Input Component (Phase 4 frontend work)
+**Next Task**: VBT-37 - Real-time Message Streaming UI (Phase 4 frontend work)
 
 **To Resume Work:**
-1. Check Jira for VBT-36 (Message Input Component)
-2. VBT-36 has 10 subtasks already created: VBT-201 through VBT-210
+1. Check Jira for VBT-37 (Real-time Message Streaming UI)
+2. VBT-37 will integrate WebSocket client with MessageList for real-time streaming
 3. **Phase 3 (Core Chat Backend)** is complete:
    - ✅ VBT-39 (WebSocket Server) - 10/10 sub-tasks
    - ✅ VBT-40 (Claude API Integration) - 10/10 sub-tasks
@@ -213,7 +224,8 @@ See `development_tasks.md` for the complete development sequence.
 4. **Phase 4 (Core Chat Frontend)** in progress:
    - ✅ VBT-34 (Main Chat Interface Layout)
    - ✅ VBT-35 (Message Display Component) - 10/10 sub-tasks (VBT-211 to VBT-220)
-   - ⏳ VBT-36 (Message Input Component) - NEXT TASK
+   - ✅ VBT-36 (Message Input Component) - 10/10 sub-tasks (VBT-201 to VBT-210)
+   - ⏳ VBT-37 (Real-time Message Streaming UI) - NEXT TASK
 
 **Test Commands:**
 ```bash

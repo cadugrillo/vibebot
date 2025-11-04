@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { ConnectionState } from '@/lib/websocket';
 
 export interface MainLayoutProps {
   children: ReactNode;
@@ -10,6 +11,8 @@ export interface MainLayoutProps {
   sidebarCollapsed?: boolean;
   onSidebarCollapsedChange?: (collapsed: boolean) => void;
   conversationTitle?: string;
+  connectionState?: ConnectionState;
+  isConnected?: boolean;
 }
 
 export interface SidebarProps {

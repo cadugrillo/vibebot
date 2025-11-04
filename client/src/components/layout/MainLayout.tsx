@@ -12,6 +12,8 @@ export function MainLayout({
   onSettings,
   sidebarCollapsed = false,
   conversationTitle,
+  connectionState,
+  isConnected,
 }: MainLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const isDesktop = useIsDesktop();
@@ -56,6 +58,8 @@ export function MainLayout({
           onSettings={onSettings}
           showMenuButton={showSidebar}
           conversationTitle={conversationTitle}
+          connectionState={connectionState}
+          isConnected={isConnected}
         />
 
         {/* Main Content - Claude-like centered layout */}
