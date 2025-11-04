@@ -50,7 +50,8 @@ export function UserMenu({ onProfile, onSettings }: UserMenuProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user?.avatarUrl} alt={user?.name || user?.email} />
+            {/* TODO: Add avatarUrl to User type when implementing profile pictures */}
+            <AvatarImage src={undefined} alt={user?.name || user?.email} />
             <AvatarFallback className="bg-primary text-primary-foreground">
               {initials}
             </AvatarFallback>

@@ -1,14 +1,12 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout';
 import { Sidebar } from '@/components/sidebar';
 import { EmptyState } from '@/components/chat';
 import { ChatSkeleton, SidebarSkeleton } from '@/components/loading';
 
 export default function ChatPage() {
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSidebarLoading, setIsSidebarLoading] = useState(false);
+  const [isLoading] = useState(false);
+  const [isSidebarLoading] = useState(false);
 
   // Handlers
   const handleNewChat = () => {
