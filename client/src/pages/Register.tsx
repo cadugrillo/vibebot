@@ -17,6 +17,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { PasswordStrengthIndicator } from '@/components/PasswordStrengthIndicator';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -66,7 +67,12 @@ export default function Register() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      {/* Theme toggle in top-right corner */}
+      <div className="fixed top-4 right-4">
+        <ThemeToggle />
+      </div>
+
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
