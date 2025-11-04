@@ -91,3 +91,22 @@ export const conversationReadRateLimiter = rateLimit({
   skipSuccessfulRequests: false,
   skipFailedRequests: false,
 });
+
+/**
+ * Rate limiter for search endpoints
+ * Limits: 30 requests per minute
+ * Purpose: Prevent search abuse while allowing normal usage
+ * VBT-239: Search Routes and Rate Limiting
+ */
+export const searchRateLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // Limit each IP to 30 requests per minute
+  message: {
+    error: 'Too many search requests',
+    message: 'Please try again after 1 minute',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  skipFailedRequests: false,
+});

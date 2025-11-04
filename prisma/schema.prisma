@@ -84,6 +84,8 @@ model Conversation {
   @@map("conversations")
   @@index([userId])
   @@index([createdAt])
+  @@index([title]) // VBT-240: Search optimization - index on title for faster search
+  @@index([model]) // VBT-240: Search optimization - index on model for filtering
 }
 
 model Message {

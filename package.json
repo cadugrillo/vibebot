@@ -25,7 +25,8 @@
     "test:provider-fallback": "tsx src/services/ai/providers/__tests__/test-fallback.ts",
     "test:provider-unit": "npm run test:provider-factory && npm run test:provider-fallback",
     "test:conversation-api": "tsx src/routes/__tests__/conversation-api.integration.test.ts",
-    "test:message-api": "tsx src/routes/__tests__/message-api.integration.test.ts"
+    "test:message-api": "tsx src/routes/__tests__/message-api.integration.test.ts",
+    "test:search-api": "tsx tests/integration/search-api.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -59,6 +60,7 @@
     "@types/node": "^24.9.2",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.46.2",
+    "axios": "^1.13.2",
     "eslint": "^9.38.0",
     "eslint-config-prettier": "^10.1.8",
     "nodemon": "^3.1.10",

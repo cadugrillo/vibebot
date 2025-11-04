@@ -197,7 +197,24 @@ Completed:
   - ✅ VBT-210: Testing and verification (comprehensive test plan, production build)
 
 Remaining Phase 4 Tasks:
-- ⏳ VBT-37: Real-time Message Streaming UI (next priority)
+- ⏳ VBT-37: Real-time Message Streaming UI (deferred - moved to Phase 5)
+
+**Phase 4 Complete!**
+
+- 🚧 **Phase 5 (Chat History)** - IN PROGRESS
+  - ✅ VBT-38: Conversation Management API - Already complete from Phase 3
+  - ✅ **VBT-50: Backend Conversation Search API (10/10 sub-tasks complete - ✅ DONE!)**
+    - ✅ VBT-232: Search Types and DTOs (210 lines)
+    - ✅ VBT-233: Search Validation Schemas (170 lines)
+    - ✅ VBT-234: Full-text Search Service (347 lines)
+    - ✅ VBT-235: Search Filters Implementation (date range, model, user)
+    - ✅ VBT-236: Relevance Scoring Algorithm (multi-factor with recency)
+    - ✅ VBT-237: Match Context Highlighting (snippet extraction)
+    - ✅ VBT-238: Search Controller Implementation (3 endpoints)
+    - ✅ VBT-239: Search Routes and Rate Limiting (30 req/min)
+    - ✅ VBT-240: Performance Optimization (database indexes)
+    - ✅ VBT-241: Integration Tests (12 tests, 36 assertions, all passing)
+  - ⏳ **VBT-49: Frontend Conversation Search UI** - NEXT TASK
 
 See `development_tasks.md` for the complete development sequence.
 
@@ -205,14 +222,14 @@ See `development_tasks.md` for the complete development sequence.
 
 ## 📍 Where to Pick Up
 
-**Last Completed**: VBT-36 - Message Input Component (✅ COMPLETE! All 10 subtasks done)
+**Last Completed**: VBT-50 - Backend Conversation Search API (✅ COMPLETE! All 10 subtasks done, all tests passing)
 
-**Next Task**: VBT-37 - Real-time Message Streaming UI (Phase 4 frontend work)
+**Next Task**: VBT-49 - Frontend Conversation Search UI (Phase 5 frontend work)
 
 **To Resume Work:**
-1. Check Jira for VBT-37 (Real-time Message Streaming UI)
-2. VBT-37 will integrate WebSocket client with MessageList for real-time streaming
-3. **Phase 3 (Core Chat Backend)** is complete:
+1. Check Jira for VBT-49 (Frontend Conversation Search UI)
+2. VBT-49 will implement search bar in sidebar with real-time search results
+3. **Phase 3 (Core Chat Backend)** - COMPLETE:
    - ✅ VBT-39 (WebSocket Server) - 10/10 sub-tasks
    - ✅ VBT-40 (Claude API Integration) - 10/10 sub-tasks
    - ✅ VBT-42 (AI Provider Abstraction Layer) - 12/12 tasks
@@ -221,11 +238,13 @@ See `development_tasks.md` for the complete development sequence.
    - ✅ VBT-173 (Comprehensive Unit Testing)
    - ✅ VBT-38 (Conversation Management API) - 10/10 sub-tasks
    - ✅ VBT-43 (Message Processing and Routing API) - 10/10 sub-tasks
-4. **Phase 4 (Core Chat Frontend)** in progress:
+4. **Phase 4 (Core Chat Frontend)** - COMPLETE:
    - ✅ VBT-34 (Main Chat Interface Layout)
    - ✅ VBT-35 (Message Display Component) - 10/10 sub-tasks (VBT-211 to VBT-220)
    - ✅ VBT-36 (Message Input Component) - 10/10 sub-tasks (VBT-201 to VBT-210)
-   - ⏳ VBT-37 (Real-time Message Streaming UI) - NEXT TASK
+5. **Phase 5 (Chat History)** - IN PROGRESS:
+   - ✅ VBT-50 (Backend Conversation Search API) - 10/10 sub-tasks (VBT-232 to VBT-241)
+   - ⏳ VBT-49 (Frontend Conversation Search UI) - NEXT TASK
 
 **Test Commands:**
 ```bash
@@ -235,6 +254,7 @@ npm run test:provider-fallback   # Run 5 fallback unit tests (9 assertions)
 npm run test:provider-unit       # Run all provider unit tests (32 assertions)
 npm run test:conversation-api    # Run 16 conversation API integration tests
 npm run test:message-api         # Run 10 message API integration tests
+npm run test:search-api          # Run 12 search API integration tests (36 assertions)
 ```
 
 **Test Coverage:**
@@ -243,7 +263,8 @@ npm run test:message-api         # Run 10 message API integration tests
 - ✅ 9 fallback unit test assertions passing
 - ✅ 41 conversation API test assertions passing in 16 tests (VBT-182)
 - ✅ 20 message API test assertions passing in 10 tests (VBT-193)
-- ✅ **Total: 135 test assertions passing (100% pass rate)**
+- ✅ 36 search API test assertions passing in 12 tests (VBT-241)
+- ✅ **Total: 171 test assertions passing (100% pass rate)**
 
 **Current Project State:**
 - ✅ **Phase 1 (Foundation)** - COMPLETE
@@ -362,8 +383,31 @@ npm run test:message-api         # Run 10 message API integration tests
     - ✅ Error states with retry button functionality
     - ✅ Message list container with auto-scroll and message grouping
     - ✅ Integration in ChatPage with mock messages, production build passing
-  - ⏳ **Message Input Component (VBT-36)** - NEXT (10 sub-tasks: VBT-201-210)
-  - ⏳ Real-time Message Streaming UI (VBT-37)
+  - ✅ **Message Input Component (VBT-36)** - COMPLETE (10/10 sub-tasks: VBT-201-210)
+    - ✅ shadcn/ui Textarea with auto-expanding (60px-200px)
+    - ✅ Send button with loading state and keyboard shortcuts
+    - ✅ Character count with color-coded warnings
+    - ✅ File upload with image paste support
+    - ✅ Loading state with disabled input
+    - ✅ Clear input after send with state reset
+    - ✅ ChatPage integration with sticky bottom positioning
+    - ✅ Testing and production build verification
+
+**Phase 4 Complete!**
+
+- 🚧 **Phase 5 (Chat History)** - IN PROGRESS
+  - ✅ **Backend Conversation Search API (VBT-50)** - COMPLETE (10/10 sub-tasks: VBT-232-241)
+    - ✅ Search Types and DTOs (SearchMatch, MatchHighlight, SearchFilters, SearchPaginationMeta)
+    - ✅ Search Validation Schemas (Zod validators with query sanitization)
+    - ✅ Full-text Search Service (Prisma-based, case-insensitive, deduplication)
+    - ✅ Search Filters (date range, model, user - combined with AND logic)
+    - ✅ Relevance Scoring (multi-factor: match type, frequency, exact match, recency)
+    - ✅ Match Highlighting (context extraction, highlight positions)
+    - ✅ Search Controller (3 endpoints: global search, conversation search, stats)
+    - ✅ Search Routes and Rate Limiting (30 requests/minute)
+    - ✅ Performance Optimization (B-tree indexes on title and model fields)
+    - ✅ Integration Tests (12 tests, 36 assertions, 100% passing)
+  - ⏳ **Frontend Conversation Search UI (VBT-49)** - NEXT TASK
 
 ## Architecture
 

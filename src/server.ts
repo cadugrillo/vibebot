@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.routes';
 import adminRoutes from './routes/admin.routes';
 import conversationRoutes from './routes/conversation.routes';
 import messageRoutes from './routes/message.routes';
+import searchRoutes from './api/search/search.routes';
 import { VibeWebSocketServer } from './websocket/server';
 
 // Load environment variables
@@ -45,6 +46,7 @@ app.get('/health', (_req: Request, res: Response) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/conversations', searchRoutes); // VBT-239: Search routes (must be BEFORE conversation routes!)
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/messages', messageRoutes);
 
