@@ -7,7 +7,14 @@ import { ChatList } from './ChatList';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 
+interface ChatListItem {
+  id: string;
+  title: string;
+  isActive?: boolean;
+}
+
 interface SidebarProps {
+  conversations?: ChatListItem[];
   onNewChat?: () => void;
   onSelectConversation?: (id: string) => void;
   onSettings?: () => void;
@@ -19,6 +26,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({
+  conversations,
   onNewChat,
   onSelectConversation,
   onSettings,
@@ -150,6 +158,7 @@ export function Sidebar({
         {/* Chat List - Scrollable */}
         <div className="flex-1 min-h-0">
           <ChatList
+            conversations={conversations}
             onSelectConversation={onSelectConversation}
             onRenameConversation={onRenameConversation}
             onDeleteConversation={onDeleteConversation}

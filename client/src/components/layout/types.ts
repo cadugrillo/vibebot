@@ -9,6 +9,7 @@ export interface MainLayoutProps {
   onSettings?: () => void;
   sidebarCollapsed?: boolean;
   onSidebarCollapsedChange?: (collapsed: boolean) => void;
+  conversationTitle?: string;
 }
 
 export interface SidebarProps {

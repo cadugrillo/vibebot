@@ -11,6 +11,7 @@ export function MainLayout({
   onProfile,
   onSettings,
   sidebarCollapsed = false,
+  conversationTitle,
 }: MainLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const isDesktop = useIsDesktop();
@@ -54,6 +55,7 @@ export function MainLayout({
           onProfile={onProfile}
           onSettings={onSettings}
           showMenuButton={showSidebar}
+          conversationTitle={conversationTitle}
         />
 
         {/* Main Content - Claude-like centered layout */}

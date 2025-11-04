@@ -6,6 +6,20 @@ import { ChatSkeleton, SidebarSkeleton } from '@/components/loading';
 
 const SIDEBAR_COLLAPSED_KEY = 'vibebot-sidebar-collapsed';
 
+// Placeholder conversations (to be replaced with real data later)
+const PLACEHOLDER_CONVERSATIONS = [
+  { id: '1', title: 'Getting started with VibeBot features', isActive: true },
+  { id: '2', title: 'React best practices and patterns' },
+  { id: '3', title: 'TypeScript advanced tips and tricks' },
+  { id: '4', title: 'Building a scalable REST API service' },
+  { id: '5', title: 'Understanding async/await in JavaScript' },
+  { id: '6', title: 'Database design principles and normalization' },
+  { id: '7', title: 'Modern CSS techniques and Tailwind usage' },
+  { id: '8', title: 'Authentication and authorization strategies' },
+  { id: '9', title: 'WebSocket implementation for real-time chat' },
+  { id: '10', title: 'Testing strategies with Jest and React Testing' },
+];
+
 export default function ChatPage() {
   const [isLoading] = useState(false);
   const [isSidebarLoading] = useState(false);
@@ -13,6 +27,7 @@ export default function ChatPage() {
     const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
     return saved ? JSON.parse(saved) : false;
   });
+  const [selectedConversationId, setSelectedConversationId] = useState<string>('1');
 
   // Persist collapsed state to localStorage
   useEffect(() => {
@@ -32,8 +47,8 @@ export default function ChatPage() {
 
   const handleSelectConversation = (id: string) => {
     console.log('Selected conversation:', id);
-    // TODO: Implement conversation selection
-    // This will navigate to the selected conversation
+    setSelectedConversationId(id);
+    // TODO: Implement conversation navigation
     // navigate(`/chat/${id}`);
   };
 
@@ -64,11 +79,24 @@ export default function ChatPage() {
     // TODO: Implement export conversation functionality
   };
 
+  // Get selected conversation title
+  const selectedConversation = PLACEHOLDER_CONVERSATIONS.find(
+    (conv) => conv.id === selectedConversationId
+  );
+  const conversationTitle = selectedConversation?.title;
+
+  // Update conversations with active state
+  const conversationsWithActive = PLACEHOLDER_CONVERSATIONS.map((conv) => ({
+    ...conv,
+    isActive: conv.id === selectedConversationId,
+  }));
+
   // Sidebar content - conditionally show loading or actual sidebar
   const sidebarContent = isSidebarLoading ? (
     <SidebarSkeleton />
   ) : (
     <Sidebar
+      conversations={conversationsWithActive}
       onNewChat={handleNewChat}
       onSelectConversation={handleSelectConversation}
       onSettings={handleSettings}
@@ -99,6 +127,7 @@ export default function ChatPage() {
       onProfile={handleProfile}
       onSettings={handleSettings}
       sidebarCollapsed={sidebarCollapsed}
+      conversationTitle={conversationTitle}
     >
       {mainContent}
     </MainLayout>
