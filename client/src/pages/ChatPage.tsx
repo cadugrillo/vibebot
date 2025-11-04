@@ -174,14 +174,24 @@ export default function ChatPage() {
       console.log('[WebSocket] Disconnected:', data.code, data.reason);
       setConnectionState('disconnected');
       setIsConnected(false);
-      toast.error('Disconnected from server');
+
+      // Don't mark messages as error - WebSocket client will queue them
+      // Messages will remain in 'sending' state until reconnection or actual failure
+      setIsSending(false);
+
+      toast.error('Disconnected from server. Messages will be sent when reconnected.');
     };
 
     const handleConnectionError = (data: { message: string; code?: string }) => {
       console.error('[WebSocket] Connection error:', data.message, data.code);
       setConnectionState('error');
       setIsConnected(false);
-      toast.error(`Connection error: ${data.message}`);
+
+      // Don't mark messages as error - WebSocket client will queue them
+      // Messages will remain in 'sending' state until reconnection or actual failure
+      setIsSending(false);
+
+      toast.error(`Connection error: ${data.message}. Retrying...`);
     };
 
     const handleStateChange = (data: { previousState: ConnectionState; currentState: ConnectionState }) => {
@@ -189,21 +199,75 @@ export default function ChatPage() {
       setConnectionState(data.currentState);
     };
 
+    // Reconnection event handlers
+    const handleReconnectSuccess = (data: { attemptNumber: number }) => {
+      console.log('[WebSocket] Reconnected successfully after', data.attemptNumber, 'attempts');
+
+      // Get queue size to inform user
+      const queueSize = wsClient.current?.getMessageQueue().size() || 0;
+
+      if (queueSize > 0) {
+        toast.success(`Reconnected! Sending ${queueSize} queued message${queueSize > 1 ? 's' : ''}...`);
+      } else {
+        toast.success('Reconnected to server');
+      }
+    };
+
+    const handleReconnectFailed = () => {
+      console.error('[WebSocket] Reconnection failed - max retries reached');
+
+      // Mark all sending messages as error since reconnection failed
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.status === 'sending'
+            ? {
+                ...msg,
+                status: 'error' as const,
+                error: 'Failed to reconnect. Click retry to try again.',
+              }
+            : msg
+        )
+      );
+
+      toast.error('Could not reconnect to server. Please refresh the page.');
+    };
+
     // Message event handlers
     const handleMessageAck = (data: { messageId: string; status: string; error?: string }) => {
       console.log('[Message] Ack received:', data.messageId, data.status);
 
       if (data.status === 'error') {
+        // Parse error message for specific cases
+        let errorMessage = data.error || 'Unknown error';
+        let userMessage = errorMessage;
+
+        // Rate limit error
+        if (errorMessage.toLowerCase().includes('rate limit')) {
+          userMessage = 'Too many messages. Please wait a moment and try again.';
+        }
+        // Authentication error
+        else if (errorMessage.toLowerCase().includes('auth')) {
+          userMessage = 'Authentication failed. Please refresh and try again.';
+        }
+        // Validation error
+        else if (errorMessage.toLowerCase().includes('validation')) {
+          userMessage = 'Message format invalid. Please try again.';
+        }
+        // Network/connection error
+        else if (errorMessage.toLowerCase().includes('connection') || errorMessage.toLowerCase().includes('network')) {
+          userMessage = 'Connection error. Please check your internet and try again.';
+        }
+
         // Handle error
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === data.messageId
-              ? { ...msg, status: 'error' as const, error: data.error || 'Unknown error' }
+              ? { ...msg, status: 'error' as const, error: userMessage }
               : msg
           )
         );
         setIsSending(false);
-        toast.error(data.error || 'Failed to send message');
+        toast.error(userMessage);
       } else if (data.status === 'delivered') {
         // Message successfully delivered
         setMessages((prev) =>
@@ -212,7 +276,8 @@ export default function ChatPage() {
           )
         );
         setIsSending(false);
-        toast.success('Message sent');
+        // Don't show success toast for every message - it's too noisy
+        // toast.success('Message sent');
       }
     };
 
@@ -325,6 +390,8 @@ export default function ChatPage() {
     client.on('connection:disconnected', handleConnectionDisconnected);
     client.on('connection:error', handleConnectionError);
     client.on('state:change', handleStateChange);
+    client.on('reconnect:success', handleReconnectSuccess);
+    client.on('reconnect:failed', handleReconnectFailed);
     client.on('message:ack', handleMessageAck);
     client.on('message:receive', handleMessageReceive);
     client.on('message:stream', handleMessageStream);
@@ -345,6 +412,8 @@ export default function ChatPage() {
       client.off('connection:disconnected', handleConnectionDisconnected);
       client.off('connection:error', handleConnectionError);
       client.off('state:change', handleStateChange);
+      client.off('reconnect:success', handleReconnectSuccess);
+      client.off('reconnect:failed', handleReconnectFailed);
       client.off('message:ack', handleMessageAck);
       client.off('message:receive', handleMessageReceive);
       client.off('message:stream', handleMessageStream);
@@ -488,6 +557,61 @@ export default function ChatPage() {
     }
   };
 
+  const handleRetryMessage = (messageId: string) => {
+    console.log('[Message] Retrying message:', messageId);
+
+    // Find the failed message
+    const failedMessage = messages.find((msg) => msg.id === messageId);
+    if (!failedMessage) {
+      console.error('[Message] Failed message not found:', messageId);
+      toast.error('Message not found');
+      return;
+    }
+
+    // Check if WebSocket is connected
+    if (!isConnected || !wsClient.current) {
+      toast.error('Not connected to server. Please wait and try again.');
+      console.error('[Message] Cannot retry - WebSocket not connected');
+      return;
+    }
+
+    // Update message status to 'sending'
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === messageId
+          ? { ...msg, status: 'sending' as const, error: undefined }
+          : msg
+      )
+    );
+    setIsSending(true);
+
+    // Retry sending via WebSocket
+    try {
+      wsClient.current.send('message:send', {
+        messageId,
+        conversationId: selectedConversationId,
+        content: failedMessage.content,
+        timestamp: new Date().toISOString(),
+      });
+
+      console.log('[Message] Retry sent via WebSocket:', messageId);
+      toast.info('Retrying message...');
+    } catch (error) {
+      console.error('[Message] Failed to retry:', error);
+
+      // Update message status back to error
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId
+            ? { ...msg, status: 'error' as const, error: 'Failed to send message' }
+            : msg
+        )
+      );
+      setIsSending(false);
+      toast.error('Failed to retry message');
+    }
+  };
+
   // Get selected conversation title
   const selectedConversation = PLACEHOLDER_CONVERSATIONS.find(
     (conv) => conv.id === selectedConversationId
@@ -527,7 +651,7 @@ export default function ChatPage() {
         <MessageList
           messages={messages}
           isTyping={isTyping}
-          onRetry={(id) => console.log('Retry message:', id)}
+          onRetry={handleRetryMessage}
           onCopy={(content) => console.log('Copied:', content)}
         />
       </div>

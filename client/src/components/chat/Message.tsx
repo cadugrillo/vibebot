@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { formatDistanceToNow, format } from 'date-fns';
-import { Copy, Check, Bot, User, AlertCircle, RefreshCcw } from 'lucide-react';
+import { Copy, Check, Bot, User, AlertCircle, RefreshCcw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { CodeBlock } from './CodeBlock';
@@ -19,6 +19,8 @@ export function Message({
   const [copied, setCopied] = useState(false);
   const isUser = message.role === 'user';
   const isError = message.status === 'error';
+  const isSending = message.status === 'sending';
+  const isStreamingStatus = message.status === 'streaming' || isStreaming;
 
   const handleCopy = async () => {
     try {
@@ -62,11 +64,13 @@ export function Message({
         {/* Message Bubble */}
         <div
           className={cn(
-            'rounded-2xl px-4 py-3 break-words',
+            'rounded-2xl px-4 py-3 break-words transition-opacity',
             isUser
               ? 'bg-primary text-primary-foreground'
               : 'bg-muted text-foreground',
-            isError && 'border-2 border-destructive'
+            isError && 'border-2 border-destructive',
+            isSending && 'opacity-70',
+            isStreamingStatus && 'opacity-90'
           )}
         >
           {/* Message Text with Markdown */}
@@ -188,12 +192,29 @@ export function Message({
           </div>
         )}
 
-        {/* Timestamp with relative time and hover tooltip */}
-        <div
-          className="text-xs text-muted-foreground px-2"
-          title={format(message.timestamp, 'PPpp')} // Full date and time on hover
-        >
-          {formatDistanceToNow(message.timestamp, { addSuffix: true })}
+        {/* Status and Timestamp */}
+        <div className="flex items-center gap-2 px-2">
+          {/* Status indicator */}
+          {isSending && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>Sending...</span>
+            </div>
+          )}
+          {isStreamingStatus && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>AI is typing...</span>
+            </div>
+          )}
+          {!isSending && !isStreamingStatus && (
+            <div
+              className="text-xs text-muted-foreground"
+              title={format(message.timestamp, 'PPpp')} // Full date and time on hover
+            >
+              {formatDistanceToNow(message.timestamp, { addSuffix: true })}
+            </div>
+          )}
         </div>
       </div>
 

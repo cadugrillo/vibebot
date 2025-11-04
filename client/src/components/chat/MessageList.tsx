@@ -37,7 +37,12 @@ export function MessageList({
   // Auto-scroll on new messages
   useEffect(() => {
     if (shouldAutoScroll) {
-      scrollToBottom('smooth');
+      // Check if any message is streaming
+      const hasStreamingMessage = messages.some(msg => msg.status === 'streaming');
+
+      // Use instant scroll during streaming for better performance
+      // Use smooth scroll for regular messages
+      scrollToBottom(hasStreamingMessage ? 'auto' : 'smooth');
     }
   }, [messages, isTyping, shouldAutoScroll]);
 
@@ -123,10 +128,15 @@ export function MessageList({
             variant="secondary"
             size="icon"
             onClick={() => {
-              scrollToBottom('smooth');
+              // Use instant scroll if streaming, smooth otherwise
+              const hasStreamingMessage = messages.some(msg => msg.status === 'streaming');
+              scrollToBottom(hasStreamingMessage ? 'auto' : 'smooth');
               setShouldAutoScroll(true);
             }}
-            className="h-10 w-10 rounded-full shadow-lg"
+            className={cn(
+              "h-10 w-10 rounded-full shadow-lg",
+              isTyping && "animate-pulse"
+            )}
           >
             <ArrowDown className="h-5 w-5" />
             <span className="sr-only">Scroll to bottom</span>
