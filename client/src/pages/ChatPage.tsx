@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout';
 import { Sidebar } from '@/components/sidebar';
-import { EmptyState } from '@/components/chat';
+import { EmptyState, MessageList } from '@/components/chat';
+import type { MessageType } from '@/components/chat';
 import { ChatSkeleton, SidebarSkeleton } from '@/components/loading';
+import { Toaster } from '@/components/ui/sonner';
 
 const SIDEBAR_COLLAPSED_KEY = 'vibebot-sidebar-collapsed';
 
@@ -18,6 +20,97 @@ const PLACEHOLDER_CONVERSATIONS = [
   { id: '8', title: 'Authentication and authorization strategies' },
   { id: '9', title: 'WebSocket implementation for real-time chat' },
   { id: '10', title: 'Testing strategies with Jest and React Testing' },
+];
+
+// Mock messages for testing (to be replaced with real data later)
+const MOCK_MESSAGES: MessageType[] = [
+  {
+    id: '1',
+    role: 'user',
+    content: 'Can you explain how React hooks work?',
+    timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
+    status: 'sent',
+  },
+  {
+    id: '2',
+    role: 'assistant',
+    content: `React Hooks are functions that let you use state and other React features in functional components. Here are the most common hooks:
+
+## useState
+\`\`\`javascript
+const [count, setCount] = useState(0);
+\`\`\`
+
+The **useState** hook allows you to add state to functional components.
+
+## useEffect
+\`\`\`javascript
+useEffect(() => {
+  // Side effect code here
+  return () => {
+    // Cleanup code
+  };
+}, [dependencies]);
+\`\`\`
+
+This hook handles side effects like:
+- Data fetching
+- Subscriptions
+- DOM manipulation
+
+## Key Benefits
+- ✅ Simpler code
+- ✅ Better code reuse
+- ✅ No more class components needed`,
+    timestamp: new Date(Date.now() - 1000 * 60 * 4), // 4 minutes ago
+    status: 'sent',
+  },
+  {
+    id: '3',
+    role: 'user',
+    content: 'What about **custom hooks**?',
+    timestamp: new Date(Date.now() - 1000 * 60 * 2), // 2 minutes ago
+    status: 'sent',
+  },
+  {
+    id: '4',
+    role: 'assistant',
+    content: `Great question! **Custom hooks** let you extract component logic into reusable functions.
+
+Here's an example:
+
+\`\`\`typescript
+function useWindowSize() {
+  const [size, setSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setSize({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return size;
+}
+\`\`\`
+
+You can then use it in any component:
+\`\`\`javascript
+const { width, height } = useWindowSize();
+\`\`\`
+
+> **Note**: Custom hooks must start with "use" and can call other hooks inside them.`,
+    timestamp: new Date(Date.now() - 1000 * 30), // 30 seconds ago
+    status: 'sent',
+  },
 ];
 
 export default function ChatPage() {
@@ -111,6 +204,12 @@ export default function ChatPage() {
   // Main content - conditionally show loading, empty state, or chat
   const mainContent = isLoading ? (
     <ChatSkeleton />
+  ) : selectedConversationId ? (
+    <MessageList
+      messages={MOCK_MESSAGES}
+      onRetry={(id) => console.log('Retry message:', id)}
+      onCopy={(content) => console.log('Copied:', content)}
+    />
   ) : (
     <EmptyState
       title="Welcome to VibeBot"
@@ -122,14 +221,17 @@ export default function ChatPage() {
   );
 
   return (
-    <MainLayout
-      sidebar={sidebarContent}
-      onProfile={handleProfile}
-      onSettings={handleSettings}
-      sidebarCollapsed={sidebarCollapsed}
-      conversationTitle={conversationTitle}
-    >
-      {mainContent}
-    </MainLayout>
+    <>
+      <Toaster />
+      <MainLayout
+        sidebar={sidebarContent}
+        onProfile={handleProfile}
+        onSettings={handleSettings}
+        sidebarCollapsed={sidebarCollapsed}
+        conversationTitle={conversationTitle}
+      >
+        {mainContent}
+      </MainLayout>
+    </>
   );
 }
