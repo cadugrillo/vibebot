@@ -10,15 +10,20 @@ export function MainLayout({
   showSidebar = true,
   onProfile,
   onSettings,
+  sidebarCollapsed = false,
 }: MainLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const isDesktop = useIsDesktop();
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Desktop Sidebar - Claude-like styling */}
+      {/* Desktop Sidebar - Claude-like styling with collapse support */}
       {showSidebar && isDesktop && (
-        <aside className="hidden lg:flex lg:flex-col w-64 border-r border-border">
+        <aside
+          className={`hidden lg:flex lg:flex-col border-r border-border transition-all duration-300 ease-in-out ${
+            sidebarCollapsed ? 'w-16' : 'w-64'
+          }`}
+        >
           {sidebar}
         </aside>
       )}

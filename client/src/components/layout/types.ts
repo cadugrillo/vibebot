@@ -7,6 +7,8 @@ export interface MainLayoutProps {
   onSidebarToggle?: () => void;
   onProfile?: () => void;
   onSettings?: () => void;
+  sidebarCollapsed?: boolean;
+  onSidebarCollapsedChange?: (collapsed: boolean) => void;
 }
 
 export interface SidebarProps {

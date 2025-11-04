@@ -1,12 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout';
 import { Sidebar } from '@/components/sidebar';
 import { EmptyState } from '@/components/chat';
 import { ChatSkeleton, SidebarSkeleton } from '@/components/loading';
 
+const SIDEBAR_COLLAPSED_KEY = 'vibebot-sidebar-collapsed';
+
 export default function ChatPage() {
   const [isLoading] = useState(false);
   const [isSidebarLoading] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  // Persist collapsed state to localStorage
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, JSON.stringify(sidebarCollapsed));
+  }, [sidebarCollapsed]);
+
+  const toggleSidebarCollapsed = () => {
+    setSidebarCollapsed((prev: boolean) => !prev);
+  };
 
   // Handlers
   const handleNewChat = () => {
@@ -34,6 +49,21 @@ export default function ChatPage() {
     // This could open a modal or navigate to settings page
   };
 
+  const handleRenameConversation = (id: string) => {
+    console.log('Rename conversation:', id);
+    // TODO: Implement rename conversation modal
+  };
+
+  const handleDeleteConversation = (id: string) => {
+    console.log('Delete conversation:', id);
+    // TODO: Implement delete conversation confirmation
+  };
+
+  const handleExportConversation = (id: string) => {
+    console.log('Export conversation:', id);
+    // TODO: Implement export conversation functionality
+  };
+
   // Sidebar content - conditionally show loading or actual sidebar
   const sidebarContent = isSidebarLoading ? (
     <SidebarSkeleton />
@@ -42,6 +72,11 @@ export default function ChatPage() {
       onNewChat={handleNewChat}
       onSelectConversation={handleSelectConversation}
       onSettings={handleSettings}
+      collapsed={sidebarCollapsed}
+      onToggleCollapse={toggleSidebarCollapsed}
+      onRenameConversation={handleRenameConversation}
+      onDeleteConversation={handleDeleteConversation}
+      onExportConversation={handleExportConversation}
     />
   );
 
@@ -63,6 +98,7 @@ export default function ChatPage() {
       sidebar={sidebarContent}
       onProfile={handleProfile}
       onSettings={handleSettings}
+      sidebarCollapsed={sidebarCollapsed}
     >
       {mainContent}
     </MainLayout>

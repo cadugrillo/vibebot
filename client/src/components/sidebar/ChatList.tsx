@@ -1,46 +1,86 @@
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, MoreHorizontal, Edit2, Trash2, Download } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 interface ChatListItem {
   id: string;
   title: string;
-  preview?: string;
-  timestamp?: string;
   isActive?: boolean;
 }
 
 interface ChatListProps {
   conversations?: ChatListItem[];
   onSelectConversation?: (id: string) => void;
+  onRenameConversation?: (id: string) => void;
+  onDeleteConversation?: (id: string) => void;
+  onExportConversation?: (id: string) => void;
 }
 
 // Placeholder data for testing
 const PLACEHOLDER_CONVERSATIONS: ChatListItem[] = [
   {
     id: '1',
-    title: 'Getting started with VibeBot',
-    preview: 'How do I create a new conversation?',
-    timestamp: '2h ago',
+    title: 'Getting started with VibeBot features',
     isActive: true,
   },
   {
     id: '2',
-    title: 'React best practices',
-    preview: 'What are the best practices for...',
-    timestamp: '1d ago',
+    title: 'React best practices and patterns',
   },
   {
     id: '3',
-    title: 'TypeScript tips',
-    preview: 'Can you explain TypeScript generics?',
-    timestamp: '2d ago',
+    title: 'TypeScript advanced tips and tricks',
+  },
+  {
+    id: '4',
+    title: 'Building a scalable REST API service',
+  },
+  {
+    id: '5',
+    title: 'Understanding async/await in JavaScript',
+  },
+  {
+    id: '6',
+    title: 'Database design principles and normalization',
+  },
+  {
+    id: '7',
+    title: 'Modern CSS techniques and Tailwind usage',
+  },
+  {
+    id: '8',
+    title: 'Authentication and authorization strategies',
+  },
+  {
+    id: '9',
+    title: 'WebSocket implementation for real-time chat',
+  },
+  {
+    id: '10',
+    title: 'Testing strategies with Jest and React Testing',
   },
 ];
 
+// Truncate title to a specific number of characters
+const truncateTitle = (title: string, maxLength: number = 22): string => {
+  if (title.length <= maxLength) return title;
+  return title.slice(0, maxLength) + '...';
+};
+
 export function ChatList({
   conversations = PLACEHOLDER_CONVERSATIONS,
-  onSelectConversation
+  onSelectConversation,
+  onRenameConversation,
+  onDeleteConversation,
+  onExportConversation,
 }: ChatListProps) {
   if (conversations.length === 0) {
     return (
@@ -64,27 +104,71 @@ export function ChatList({
           </h3>
         </div>
         {conversations.map((conversation) => (
-          <button
+          <div
             key={conversation.id}
-            onClick={() => onSelectConversation?.(conversation.id)}
             className={cn(
-              'w-full text-left px-3 py-2.5 rounded-lg transition-colors',
+              'group relative px-3 py-2 rounded-lg transition-colors',
               'hover:bg-accent hover:text-accent-foreground',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               conversation.isActive && 'bg-accent'
             )}
           >
-            <div className="flex flex-col gap-1">
-              <span className="text-sm font-medium line-clamp-1">
-                {conversation.title}
-              </span>
-              {conversation.preview && (
-                <span className="text-xs text-muted-foreground line-clamp-1">
-                  {conversation.preview}
+            <div className="flex items-center justify-between gap-2">
+              <button
+                onClick={() => onSelectConversation?.(conversation.id)}
+                className="flex-1 text-left focus-visible:outline-none min-w-0"
+              >
+                <span className="text-sm font-medium block">
+                  {truncateTitle(conversation.title)}
                 </span>
-              )}
+              </button>
+
+              {/* Actions Menu - appears on hover */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRenameConversation?.(conversation.id);
+                    }}
+                  >
+                    <Edit2 className="mr-2 h-4 w-4" />
+                    <span>Rename</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onExportConversation?.(conversation.id);
+                    }}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    <span>Export</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteConversation?.(conversation.id);
+                    }}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    <span>Delete</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          </button>
+          </div>
         ))}
 
         {/* Previous 7 Days Section (Optional) */}
