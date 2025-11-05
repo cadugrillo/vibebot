@@ -24,59 +24,16 @@ interface ChatListProps {
   onExportConversation?: (id: string) => void;
 }
 
-// Placeholder data for testing
-const PLACEHOLDER_CONVERSATIONS: ChatListItem[] = [
-  {
-    id: '1',
-    title: 'Getting started with VibeBot features',
-    isActive: true,
-  },
-  {
-    id: '2',
-    title: 'React best practices and patterns',
-  },
-  {
-    id: '3',
-    title: 'TypeScript advanced tips and tricks',
-  },
-  {
-    id: '4',
-    title: 'Building a scalable REST API service',
-  },
-  {
-    id: '5',
-    title: 'Understanding async/await in JavaScript',
-  },
-  {
-    id: '6',
-    title: 'Database design principles and normalization',
-  },
-  {
-    id: '7',
-    title: 'Modern CSS techniques and Tailwind usage',
-  },
-  {
-    id: '8',
-    title: 'Authentication and authorization strategies',
-  },
-  {
-    id: '9',
-    title: 'WebSocket implementation for real-time chat',
-  },
-  {
-    id: '10',
-    title: 'Testing strategies with Jest and React Testing',
-  },
-];
-
 // Truncate title to a specific number of characters
-const truncateTitle = (title: string, maxLength: number = 22): string => {
+const truncateTitle = (title: string | undefined | null, maxLength: number = 22): string => {
+  // Handle undefined/null titles
+  if (!title) return 'Untitled Conversation';
   if (title.length <= maxLength) return title;
   return title.slice(0, maxLength) + '...';
 };
 
 export function ChatList({
-  conversations = PLACEHOLDER_CONVERSATIONS,
+  conversations = [],
   onSelectConversation,
   onRenameConversation,
   onDeleteConversation,

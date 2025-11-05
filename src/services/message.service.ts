@@ -326,7 +326,7 @@ export class MessageService {
       id: message.id,
       conversationId: message.conversationId,
       userId: message.userId,
-      role: message.role,
+      role: message.role.toLowerCase() as 'user' | 'assistant' | 'system', // Convert Prisma enum to lowercase
       content: message.content,
       metadata: (message.metadata as MessageMetadata) || null,
       createdAt: message.createdAt,

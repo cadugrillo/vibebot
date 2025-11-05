@@ -7,123 +7,33 @@ import { ChatSkeleton, SidebarSkeleton } from '@/components/loading';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import { getWebSocketClient, type WebSocketClient, type ConnectionState } from '@/lib/websocket';
+import {
+  listConversations,
+  createConversation,
+  deleteConversation as deleteConversationAPI,
+  updateConversation,
+  type Conversation,
+} from '@/lib/api/conversations';
+import {
+  listMessages,
+  createMessage as createMessageAPI,
+  type Message as APIMessage,
+} from '@/lib/api/messages';
 
 const SIDEBAR_COLLAPSED_KEY = 'vibebot-sidebar-collapsed';
 
-// Placeholder conversations (to be replaced with real data later)
-const PLACEHOLDER_CONVERSATIONS = [
-  { id: '1', title: 'Getting started with VibeBot features', isActive: true },
-  { id: '2', title: 'React best practices and patterns' },
-  { id: '3', title: 'TypeScript advanced tips and tricks' },
-  { id: '4', title: 'Building a scalable REST API service' },
-  { id: '5', title: 'Understanding async/await in JavaScript' },
-  { id: '6', title: 'Database design principles and normalization' },
-  { id: '7', title: 'Modern CSS techniques and Tailwind usage' },
-  { id: '8', title: 'Authentication and authorization strategies' },
-  { id: '9', title: 'WebSocket implementation for real-time chat' },
-  { id: '10', title: 'Testing strategies with Jest and React Testing' },
-];
-
-// Mock messages for testing (to be replaced with real data later)
-const MOCK_MESSAGES: MessageType[] = [
-  {
-    id: '1',
-    role: 'user',
-    content: 'Can you explain how React hooks work?',
-    timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-    status: 'sent',
-  },
-  {
-    id: '2',
-    role: 'assistant',
-    content: `React Hooks are functions that let you use state and other React features in functional components. Here are the most common hooks:
-
-## useState
-\`\`\`javascript
-const [count, setCount] = useState(0);
-\`\`\`
-
-The **useState** hook allows you to add state to functional components.
-
-## useEffect
-\`\`\`javascript
-useEffect(() => {
-  // Side effect code here
-  return () => {
-    // Cleanup code
-  };
-}, [dependencies]);
-\`\`\`
-
-This hook handles side effects like:
-- Data fetching
-- Subscriptions
-- DOM manipulation
-
-## Key Benefits
-- ✅ Simpler code
-- ✅ Better code reuse
-- ✅ No more class components needed`,
-    timestamp: new Date(Date.now() - 1000 * 60 * 4), // 4 minutes ago
-    status: 'sent',
-  },
-  {
-    id: '3',
-    role: 'user',
-    content: 'What about **custom hooks**?',
-    timestamp: new Date(Date.now() - 1000 * 60 * 2), // 2 minutes ago
-    status: 'sent',
-  },
-  {
-    id: '4',
-    role: 'assistant',
-    content: `Great question! **Custom hooks** let you extract component logic into reusable functions.
-
-Here's an example:
-
-\`\`\`typescript
-function useWindowSize() {
-  const [size, setSize] = useState({
-    width: window.innerWidth,
-    height: window.innerHeight
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      setSize({
-        width: window.innerWidth,
-        height: window.innerHeight
-      });
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  return size;
-}
-\`\`\`
-
-You can then use it in any component:
-\`\`\`javascript
-const { width, height } = useWindowSize();
-\`\`\`
-
-> **Note**: Custom hooks must start with "use" and can call other hooks inside them.`,
-    timestamp: new Date(Date.now() - 1000 * 30), // 30 seconds ago
-    status: 'sent',
-  },
-];
-
 export default function ChatPage() {
-  const [isLoading] = useState(false);
-  const [isSidebarLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSidebarLoading, setIsSidebarLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
     return saved ? JSON.parse(saved) : false;
   });
-  const [selectedConversationId, setSelectedConversationId] = useState<string>('1');
-  const [messages, setMessages] = useState<MessageType[]>(MOCK_MESSAGES);
+
+  // Conversation and message state
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<MessageType[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false); // Track if others are typing
 
@@ -132,10 +42,20 @@ export default function ChatPage() {
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [isConnected, setIsConnected] = useState(false);
 
+  // Use ref to track selectedConversationId so WebSocket handlers can access current value
+  // (avoids stale closure issue since WebSocket effect only runs once)
+  const selectedConversationIdRef = useRef<string | null>(null);
+
   // Log connection state for debugging (will be used in UI in VBT-225)
   useEffect(() => {
     console.log('[WebSocket] Connection state:', connectionState, '| Connected:', isConnected);
   }, [connectionState, isConnected]);
+
+  // Keep ref in sync with selectedConversationId state
+  useEffect(() => {
+    selectedConversationIdRef.current = selectedConversationId;
+    console.log('[ChatPage] Selected conversation updated:', selectedConversationId);
+  }, [selectedConversationId]);
 
   // Persist collapsed state to localStorage
   useEffect(() => {
@@ -290,8 +210,11 @@ export default function ChatPage() {
     }) => {
       console.log('[Message] Received:', data.messageId, 'from user:', data.userId);
 
-      // Only add message if it's for the current conversation
-      if (data.conversationId === selectedConversationId) {
+      // Only add message if it's for the current conversation (use ref for current value)
+      if (data.conversationId === selectedConversationIdRef.current) {
+        // Safety check: ensure content is defined
+        const content = data.content ?? '';
+
         // Check if message already exists (avoid duplicates)
         setMessages((prev) => {
           const exists = prev.some((msg) => msg.id === data.messageId);
@@ -306,7 +229,7 @@ export default function ChatPage() {
             {
               id: data.messageId,
               role: 'user' as const,
-              content: data.content,
+              content: content,
               timestamp: new Date(data.timestamp),
               status: 'sent' as const,
             },
@@ -322,35 +245,45 @@ export default function ChatPage() {
       isComplete: boolean;
       timestamp: string;
     }) => {
-      console.log('[Message] Stream chunk:', data.messageId, 'complete:', data.isComplete);
+      console.log('[Message] Stream chunk:', data.messageId, 'complete:', data.isComplete, 'content length:', data.content?.length || 0);
 
-      // Only process if it's for the current conversation
-      if (data.conversationId === selectedConversationId) {
+      // Only process if it's for the current conversation (use ref for current value)
+      if (data.conversationId === selectedConversationIdRef.current) {
+        // Safety check: ensure content is defined (use empty string if undefined)
+        const content = data.content ?? '';
+
         setMessages((prev) => {
           // Check if this message already exists
           const existingIndex = prev.findIndex((msg) => msg.id === data.messageId);
 
           if (existingIndex === -1) {
-            // First stream chunk - create new AI message
+            // First stream chunk - only create message if we have content
+            // Skip empty initial chunks to avoid showing empty bubbles
+            if (content.length === 0 && !data.isComplete) {
+              console.log('[Message] Skipping empty initial chunk:', data.messageId);
+              return prev; // Don't create message yet
+            }
+
+            // Create new AI message
             console.log('[Message] Creating new streaming message:', data.messageId);
             return [
               ...prev,
               {
                 id: data.messageId,
                 role: 'assistant' as const,
-                content: data.content,
+                content: content,
                 timestamp: new Date(data.timestamp),
                 status: data.isComplete ? 'sent' as const : 'streaming' as const,
               },
             ];
           } else {
             // Subsequent chunks - update existing message
-            console.log('[Message] Updating streaming message:', data.messageId, 'length:', data.content.length);
+            console.log('[Message] Updating streaming message:', data.messageId, 'length:', content.length);
             return prev.map((msg, index) =>
               index === existingIndex
                 ? {
                     ...msg,
-                    content: data.content, // Replace entire content (cumulative, not delta)
+                    content: content, // Replace entire content (cumulative, not delta)
                     status: data.isComplete ? 'sent' as const : 'streaming' as const,
                   }
                 : msg
@@ -369,8 +302,8 @@ export default function ChatPage() {
     const handleTypingStart = (data: { userId: string; conversationId: string }) => {
       console.log('[Typing] User started typing:', data.userId, 'in conversation:', data.conversationId);
 
-      // Only show typing indicator for current conversation
-      if (data.conversationId === selectedConversationId) {
+      // Only show typing indicator for current conversation (use ref for current value)
+      if (data.conversationId === selectedConversationIdRef.current) {
         setIsTyping(true);
       }
     };
@@ -378,8 +311,8 @@ export default function ChatPage() {
     const handleTypingStop = (data: { userId: string; conversationId: string }) => {
       console.log('[Typing] User stopped typing:', data.userId, 'in conversation:', data.conversationId);
 
-      // Hide typing indicator for current conversation
-      if (data.conversationId === selectedConversationId) {
+      // Hide typing indicator for current conversation (use ref for current value)
+      if (data.conversationId === selectedConversationIdRef.current) {
         setIsTyping(false);
       }
     };
@@ -426,22 +359,131 @@ export default function ChatPage() {
     };
   }, []); // Empty dependency array - run once on mount
 
+  // Fetch conversations on mount
+  useEffect(() => {
+    const fetchConversations = async () => {
+      setIsSidebarLoading(true);
+      try {
+        const response = await listConversations({ sortBy: 'updatedAt', sortOrder: 'desc' });
+
+        console.log('[Conversations] Raw response:', response);
+
+        if (response.error) {
+          console.error('[Conversations] Error fetching:', response.error);
+          toast.error('Failed to load conversations');
+          setConversations([]);
+        } else if (response.data) {
+          // Validate response structure
+          if (!response.data.data || !Array.isArray(response.data.data)) {
+            console.error('[Conversations] Invalid response structure:', response.data);
+            toast.error('Invalid response from server');
+            setConversations([]);
+            return;
+          }
+
+          console.log('[Conversations] Loaded:', response.data.data.length);
+          setConversations(response.data.data);
+
+          // If no conversation is selected and we have conversations, select the first one
+          if (!selectedConversationId && response.data.data.length > 0) {
+            setSelectedConversationId(response.data.data[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('[Conversations] Fetch error:', error);
+        toast.error('Failed to load conversations');
+        setConversations([]);
+      } finally {
+        setIsSidebarLoading(false);
+      }
+    };
+
+    fetchConversations();
+  }, []); // Run once on mount
+
+  // Fetch messages when conversation is selected
+  useEffect(() => {
+    if (!selectedConversationId) {
+      setMessages([]);
+      return;
+    }
+
+    const fetchMessages = async () => {
+      setIsLoading(true);
+      try {
+        const response = await listMessages({
+          conversationId: selectedConversationId,
+          sortOrder: 'asc', // Chronological order
+        });
+
+        if (response.error) {
+          console.error('[Messages] Error fetching:', response.error);
+          toast.error('Failed to load messages');
+          setMessages([]);
+        } else if (response.data) {
+          console.log('[Messages] Loaded:', response.data.data.length);
+
+          // Convert API messages to MessageType format
+          const formattedMessages: MessageType[] = response.data.data.map((msg: APIMessage) => ({
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+            timestamp: new Date(msg.createdAt),
+            status: 'sent' as const,
+            metadata: msg.metadata,
+          }));
+
+          setMessages(formattedMessages);
+        }
+      } catch (error) {
+        console.error('[Messages] Fetch error:', error);
+        toast.error('Failed to load messages');
+        setMessages([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMessages();
+  }, [selectedConversationId]); // Re-fetch when conversation changes
+
   const toggleSidebarCollapsed = () => {
     setSidebarCollapsed((prev: boolean) => !prev);
   };
 
   // Handlers
-  const handleNewChat = () => {
-    console.log('New chat clicked');
-    // TODO: Implement new chat functionality
-    // This will create a new conversation and navigate to it
+  const handleNewChat = async () => {
+    console.log('[Conversation] Creating new chat...');
+
+    try {
+      const response = await createConversation({
+        title: 'New Conversation',
+      });
+
+      if (response.error) {
+        console.error('[Conversation] Error creating:', response.error);
+        toast.error('Failed to create conversation');
+      } else if (response.data) {
+        const createdConversation = response.data.data;  // Conversation is in data.data
+        console.log('[Conversation] Created:', createdConversation.id);
+
+        // Add to conversations list
+        setConversations((prev) => [createdConversation, ...prev]);
+
+        // Select the new conversation
+        setSelectedConversationId(createdConversation.id);
+
+        toast.success('New conversation created');
+      }
+    } catch (error) {
+      console.error('[Conversation] Create error:', error);
+      toast.error('Failed to create conversation');
+    }
   };
 
   const handleSelectConversation = (id: string) => {
-    console.log('Selected conversation:', id);
+    console.log('[Conversation] Selected:', id);
     setSelectedConversationId(id);
-    // TODO: Implement conversation navigation
-    // navigate(`/chat/${id}`);
   };
 
   const handleProfile = () => {
@@ -456,14 +498,66 @@ export default function ChatPage() {
     // This could open a modal or navigate to settings page
   };
 
-  const handleRenameConversation = (id: string) => {
-    console.log('Rename conversation:', id);
-    // TODO: Implement rename conversation modal
+  const handleRenameConversation = async (id: string) => {
+    const newTitle = prompt('Enter new conversation title:');
+    if (!newTitle) return;
+
+    console.log('[Conversation] Renaming:', id, 'to:', newTitle);
+
+    try {
+      const response = await updateConversation(id, { title: newTitle });
+
+      if (response.error) {
+        console.error('[Conversation] Error renaming:', response.error);
+        toast.error('Failed to rename conversation');
+      } else if (response.data) {
+        const updatedConversation = response.data.data;  // Conversation is in data.data
+        console.log('[Conversation] Renamed:', updatedConversation.id);
+
+        // Update conversations list with the updated conversation from backend
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.id === id ? updatedConversation : conv
+          )
+        );
+
+        toast.success('Conversation renamed');
+      }
+    } catch (error) {
+      console.error('[Conversation] Rename error:', error);
+      toast.error('Failed to rename conversation');
+    }
   };
 
-  const handleDeleteConversation = (id: string) => {
-    console.log('Delete conversation:', id);
-    // TODO: Implement delete conversation confirmation
+  const handleDeleteConversation = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this conversation?')) return;
+
+    console.log('[Conversation] Deleting:', id);
+
+    try {
+      const response = await deleteConversationAPI(id);
+
+      if (response.error) {
+        console.error('[Conversation] Error deleting:', response.error);
+        toast.error('Failed to delete conversation');
+      } else {
+        console.log('[Conversation] Deleted:', id);
+
+        // Remove from conversations list
+        setConversations((prev) => prev.filter((conv) => conv.id !== id));
+
+        // If deleted conversation was selected, clear selection
+        if (selectedConversationId === id) {
+          setSelectedConversationId(null);
+          setMessages([]);
+        }
+
+        toast.success('Conversation deleted');
+      }
+    } catch (error) {
+      console.error('[Conversation] Delete error:', error);
+      toast.error('Failed to delete conversation');
+    }
   };
 
   const handleExportConversation = (id: string) => {
@@ -471,8 +565,14 @@ export default function ChatPage() {
     // TODO: Implement export conversation functionality
   };
 
-  const handleSendMessage = (content: string, files?: File[]) => {
+  const handleSendMessage = async (content: string, files?: File[]) => {
     console.log('[Message] Sending:', content, files);
+
+    // Check if conversation is selected
+    if (!selectedConversationId) {
+      toast.error('No conversation selected');
+      return;
+    }
 
     // Check if WebSocket is connected
     if (!isConnected || !wsClient.current) {
@@ -481,45 +581,80 @@ export default function ChatPage() {
       return;
     }
 
-    // Generate unique message ID
-    const messageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    // Create temporary message ID for UI
+    const tempMessageId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
     // Create user message with 'sending' status
     const userMessage: MessageType = {
-      id: messageId,
+      id: tempMessageId,
       role: 'user',
       content,
       timestamp: new Date(),
       status: 'sending',
     };
 
-    // Add user message to UI
+    // Add user message to UI immediately
     setMessages((prev) => [...prev, userMessage]);
     setIsSending(true);
 
-    // Send via WebSocket
     try {
+      // 1. Persist message to database via REST API
+      console.log('[Message] Persisting to database...');
+      const response = await createMessageAPI({
+        conversationId: selectedConversationId,
+        content,
+        role: 'user',
+      });
+
+      if (response.error) {
+        console.error('[Message] Error persisting:', response.error);
+        throw new Error(response.error.message || 'Failed to save message');
+      }
+
+      if (!response.data) {
+        throw new Error('No data returned from API');
+      }
+
+      const savedMessage = response.data.data;  // Message is in data.data
+      console.log('[Message] Persisted to database:', savedMessage.id);
+
+      // Update message with real ID from database
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === tempMessageId
+            ? { ...msg, id: savedMessage.id, status: 'sent' as const }
+            : msg
+        )
+      );
+
+      // 2. Send via WebSocket for real-time AI response
+      console.log('[Message] Sending via WebSocket for AI response...');
       wsClient.current.send('message:send', {
-        messageId,
+        messageId: savedMessage.id, // Use real database ID
         conversationId: selectedConversationId,
         content,
         timestamp: new Date().toISOString(),
       });
 
-      console.log('[Message] Sent via WebSocket:', messageId);
+      console.log('[Message] Sent successfully:', savedMessage.id);
+      setIsSending(false);
     } catch (error) {
       console.error('[Message] Failed to send:', error);
 
       // Update message status to error
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === messageId
-            ? { ...msg, status: 'error' as const, error: 'Failed to send message' }
+          msg.id === tempMessageId
+            ? {
+                ...msg,
+                status: 'error' as const,
+                error: error instanceof Error ? error.message : 'Failed to send message',
+              }
             : msg
         )
       );
       setIsSending(false);
-      toast.error('Failed to send message');
+      toast.error(error instanceof Error ? error.message : 'Failed to send message');
     }
   };
 
@@ -613,14 +748,15 @@ export default function ChatPage() {
   };
 
   // Get selected conversation title
-  const selectedConversation = PLACEHOLDER_CONVERSATIONS.find(
+  const selectedConversation = conversations.find(
     (conv) => conv.id === selectedConversationId
   );
   const conversationTitle = selectedConversation?.title;
 
-  // Update conversations with active state
-  const conversationsWithActive = PLACEHOLDER_CONVERSATIONS.map((conv) => ({
-    ...conv,
+  // Update conversations with active state for sidebar
+  const conversationsWithActive = conversations.map((conv) => ({
+    id: conv.id,
+    title: conv.title,
     isActive: conv.id === selectedConversationId,
   }));
 

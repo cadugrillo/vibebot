@@ -5,6 +5,7 @@ import {
   refreshTokenHandler,
   logoutHandler,
   logoutAllHandler,
+  getCurrentUserHandler,
 } from '../controllers/auth.controller';
 import {
   authRateLimiter,
@@ -56,5 +57,12 @@ router.post('/logout', logoutHandler);
  * Requires authentication
  */
 router.post('/logout-all', authenticateToken, logoutAllHandler);
+
+/**
+ * GET /api/auth/me
+ * Get current user information
+ * Requires authentication
+ */
+router.get('/me', authenticateToken, getCurrentUserHandler);
 
 export default router;

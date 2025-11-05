@@ -236,3 +236,48 @@ export async function logoutAllHandler(
     });
   }
 }
+
+/**
+ * Get current user endpoint handler
+ * GET /api/auth/me
+ * Requires authentication
+ */
+export async function getCurrentUserHandler(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Authentication required',
+      });
+      return;
+    }
+
+    // Get user from database
+    const user = await authService.getUserById(req.user.userId);
+
+    if (!user) {
+      res.status(404).json({
+        error: 'Not Found',
+        message: 'User not found',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'An error occurred while fetching user data',
+    });
+  }
+}

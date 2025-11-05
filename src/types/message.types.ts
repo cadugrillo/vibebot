@@ -10,9 +10,14 @@ import { MessageRole } from '../generated/prisma';
 // ============================================================================
 
 /**
- * Re-export MessageRole from Prisma for convenience
+ * Re-export MessageRole from Prisma for convenience (internal use)
  */
 export { MessageRole };
+
+/**
+ * Message role for API responses (lowercase to match frontend expectations)
+ */
+export type MessageRoleAPI = 'user' | 'assistant' | 'system';
 
 // ============================================================================
 // Message Metadata
@@ -83,7 +88,7 @@ export interface MessageResponseDTO {
   id: string;
   conversationId: string;
   userId: string | null;
-  role: MessageRole;
+  role: MessageRoleAPI; // Use lowercase API type for client compatibility
   content: string;
   metadata: MessageMetadata | null;
   createdAt: Date;

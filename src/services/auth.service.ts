@@ -283,3 +283,20 @@ export async function cleanupExpiredTokens(): Promise<number> {
   });
   return result.count;
 }
+
+/**
+ * Get user by ID
+ * @param userId - User ID
+ * @returns User object or null if not found
+ */
+export async function getUserById(userId: string) {
+  return await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+    },
+  });
+}
