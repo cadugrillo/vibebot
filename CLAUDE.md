@@ -222,29 +222,118 @@ See `development_tasks.md` for the complete development sequence.
 
 ## 📍 Where to Pick Up
 
-**Last Completed**: VBT-50 - Backend Conversation Search API (✅ COMPLETE! All 10 subtasks done, all tests passing)
+**Last Session (2025-11-05)**: Critical Bug Fixes - Core Functionality Stabilization (✅ COMPLETE!)
+
+**Session Summary:**
+We paused VBT-49 (Frontend Search) to fix critical bugs affecting core chat functionality. All 5 major bugs resolved:
+
+1. **✅ Real-time AI Streaming Fixed** - Messages now stream live without requiring chat re-selection
+   - Issue: WebSocket event handlers had stale closure - referenced old `selectedConversationId` value
+   - Fix: Added `selectedConversationIdRef` ref to track current conversation (ChatPage.tsx:47-57)
+   - Modified handlers: `handleMessageStream`, `handleMessageReceive`, `handleTypingStart`, `handleTypingStop`
+
+2. **✅ White Screen Crash Fixed** - Application no longer crashes during streaming
+   - Issue: `data.content` was undefined in stream chunks, causing `.length` crash
+   - Fix: Added safety check `const content = data.content ?? ''` (ChatPage.tsx:253)
+   - Applied to both `handleMessageStream` and `handleMessageReceive`
+
+3. **✅ Message Alignment Fixed** - User messages display on right, AI on left
+   - Issue: Prisma enum `MessageRole` uses UPPERCASE (USER/ASSISTANT), frontend expects lowercase
+   - Fix 1: Created `MessageRoleAPI` type for API responses (message.types.ts:20)
+   - Fix 2: Convert to lowercase in `formatMessageDTO()` (message.service.ts:329)
+   - Backend now returns `"user"/"assistant"` instead of `"USER"/"ASSISTANT"`
+
+4. **✅ Session Persistence Fixed** - Auth persists across page refreshes
+   - Issue: Missing `/api/auth/me` endpoint - auth check failed on refresh, cleared tokens
+   - Fix 1: Added `getUserById()` function to auth service (auth.service.ts:292-302)
+   - Fix 2: Added `getCurrentUserHandler()` controller (auth.controller.ts:245-283)
+   - Fix 3: Added route `GET /api/auth/me` (auth.routes.ts:66)
+
+5. **✅ Duplicate Empty Bubble Fixed** - No more empty message bubble during streaming
+   - Issue: First stream chunk with empty content created empty bubble immediately
+   - Fix: Skip message creation until content exists (ChatPage.tsx:262-265)
+   - Logic: `if (content.length === 0 && !data.isComplete) return prev;`
+
+**Files Modified:**
+- `client/src/pages/ChatPage.tsx` - Streaming fixes, stale closure fix, empty bubble fix
+- `client/src/lib/api/conversations.ts` - Created (frontend API client)
+- `client/src/lib/api/messages.ts` - Created (frontend API client)
+- `client/src/lib/api/common.ts` - Created (shared types)
+- `client/src/lib/api/index.ts` - Created (exports)
+- `client/src/components/sidebar/ChatList.tsx` - Safety check for undefined titles
+- `src/services/message.service.ts` - Role conversion to lowercase
+- `src/types/message.types.ts` - Added MessageRoleAPI type
+- `src/services/auth.service.ts` - Added getUserById function
+- `src/controllers/auth.controller.ts` - Added getCurrentUserHandler
+- `src/routes/auth.routes.ts` - Added /me endpoint
+
+**Current Application Status:**
+- ✅ Conversations and messages persist to database correctly
+- ✅ ChatList displays real backend data (no more mock data)
+- ✅ AI responses stream live in real-time
+- ✅ Message alignment correct (user right, AI left)
+- ✅ Authentication persists across page refreshes
+- ✅ Clean single message bubbles (no duplicates)
+- ✅ All core functionality stable and working
 
 **Next Task**: VBT-49 - Frontend Conversation Search UI (Phase 5 frontend work)
 
 **To Resume Work:**
 1. Check Jira for VBT-49 (Frontend Conversation Search UI)
 2. VBT-49 will implement search bar in sidebar with real-time search results
-3. **Phase 3 (Core Chat Backend)** - COMPLETE:
-   - ✅ VBT-39 (WebSocket Server) - 10/10 sub-tasks
-   - ✅ VBT-40 (Claude API Integration) - 10/10 sub-tasks
-   - ✅ VBT-42 (AI Provider Abstraction Layer) - 12/12 tasks
-   - ✅ VBT-171 (Provider Selection Logic)
-   - ✅ VBT-172 (Provider Capabilities and Metadata)
-   - ✅ VBT-173 (Comprehensive Unit Testing)
-   - ✅ VBT-38 (Conversation Management API) - 10/10 sub-tasks
-   - ✅ VBT-43 (Message Processing and Routing API) - 10/10 sub-tasks
-4. **Phase 4 (Core Chat Frontend)** - COMPLETE:
-   - ✅ VBT-34 (Main Chat Interface Layout)
-   - ✅ VBT-35 (Message Display Component) - 10/10 sub-tasks (VBT-211 to VBT-220)
-   - ✅ VBT-36 (Message Input Component) - 10/10 sub-tasks (VBT-201 to VBT-210)
-5. **Phase 5 (Chat History)** - IN PROGRESS:
+3. Backend search API (VBT-50) is complete and tested - ready for frontend integration
+4. **Phase 3 (Core Chat Backend)** - COMPLETE
+5. **Phase 4 (Core Chat Frontend)** - COMPLETE
+6. **Phase 5 (Chat History)** - IN PROGRESS:
    - ✅ VBT-50 (Backend Conversation Search API) - 10/10 sub-tasks (VBT-232 to VBT-241)
    - ⏳ VBT-49 (Frontend Conversation Search UI) - NEXT TASK
+
+**Quick Start for Tomorrow:**
+```bash
+# Terminal 1 - Backend Server
+cd /Users/cadugrillo/Typescript/vibebot
+npm run dev
+
+# Terminal 2 - Frontend Dev Server
+cd /Users/cadugrillo/Typescript/vibebot/client
+npm run dev
+
+# Open browser: http://localhost:5173
+# Backend runs on: http://localhost:5000
+# Database: PostgreSQL on localhost:5432
+```
+
+**Important Technical Notes:**
+
+1. **Stale Closure Pattern in React**
+   - WebSocket event handlers registered once on mount can have stale closures
+   - Solution: Use refs for values that change over time (like selectedConversationId)
+   - Pattern: Create ref, sync with state via useEffect, use ref.current in handlers
+   - Applied to: All conversation-filtered WebSocket handlers
+
+2. **Prisma Enum vs Frontend Types**
+   - Prisma enums are UPPERCASE by default (USER, ASSISTANT, SYSTEM)
+   - Frontend expects lowercase for proper component logic
+   - Solution: Create separate API types (MessageRoleAPI) and convert in DTOs
+   - DO NOT change Prisma schema - maintain at database level, convert at API layer
+
+3. **Two-Step Message Flow**
+   - Step 1: REST API POST to persist user message to database
+   - Step 2: WebSocket message to trigger AI processing and streaming
+   - This ensures message persistence even if WebSocket fails
+   - User message gets real database ID before AI processing starts
+
+4. **Stream Chunk Handling**
+   - First stream chunk may have empty content (metadata only)
+   - Skip creating UI message until content.length > 0
+   - Use nullish coalescing (`??`) for undefined content safety
+   - Check both content existence and completeness flag
+
+5. **Authentication Flow**
+   - Login/Register: Tokens stored in localStorage + HTTP-only cookies
+   - Page Refresh: Check localStorage → Call /api/auth/me → Verify user exists
+   - Token Refresh: Automatic via useTokenRefresh hook (2 min before expiry)
+   - Protected Routes: Show loading while checking auth, then redirect or render
 
 **Test Commands:**
 ```bash
