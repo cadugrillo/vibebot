@@ -7,6 +7,12 @@
  */
 
 /**
+ * Search mode - all conversations or specific conversation
+ * VBT-248: Conversation-Specific Search Mode
+ */
+export type SearchMode = 'all' | 'conversation';
+
+/**
  * Date range filter for search
  */
 export interface DateRangeFilter {
@@ -304,6 +310,11 @@ export interface SearchResultsProps {
    * Empty state message
    */
   emptyMessage?: string;
+
+  /**
+   * Show relevance score (for debugging, default: false)
+   */
+  showRelevanceScore?: boolean;
 }
 
 /**

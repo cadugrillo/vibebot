@@ -8,6 +8,7 @@ import Register from './pages/Register';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import ChatPage from './pages/ChatPage';
+import SearchTestPage from './pages/SearchTestPage';
 
 function App() {
   return (
@@ -25,6 +26,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ChatPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/search-test"
+              element={
+                <ProtectedRoute>
+                  <SearchTestPage />
                 </ProtectedRoute>
               }
             />

@@ -339,7 +339,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               onClick={handleSend}
               disabled={!canSend}
               size="icon"
-              className="h-[60px] w-[60px]"
+              className="h-[80px] w-[80px]"
               title={
                 loading
                   ? 'Sending...'

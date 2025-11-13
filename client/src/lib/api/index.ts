@@ -6,3 +6,4 @@
 export * from './common';
 export * from './conversations';
 export * from './messages';
+export * from './search';
